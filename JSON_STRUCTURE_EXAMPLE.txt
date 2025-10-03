@@ -1,0 +1,142 @@
+JSON STRUCTURE FOR BOWLING MACHINE DATA
+==========================================
+
+The new JSON file will be organized as follows:
+
+{
+  "metadata": {
+    "total_combinations": 1331,
+    "speeds": [60, 70, 80, 90, 100, 110, 120, 130, 140, 150, 160],
+    "swing_levels": [-5, -4, -3, -2, -1, 0, 1, 2, 3, 4, 5],
+    "spin_levels": [-5, -4, -3, -2, -1, 0, 1, 2, 3, 4, 5],
+    "positions": ["centre - 0", "top- 1", "left - 2", "right - 3", "bottom - 4", 
+                 "top-mid-centre-5", "top-mid-left-6", "top-mid-right-7"],
+    "description": "Complete bowling machine dataset organized by speed and levels",
+    "structure": "speed -> swing_level -> spin_level -> positions -> servo_values"
+  },
+  "data": {
+    "60_kmph": {
+      "speed": 60,
+      "swing_levels": {
+        "swing_level_0": {
+          "swing_level": 0,
+          "spin_levels": {
+            "spin_level_0": {
+              "spin_level": 0,
+              "positions": {
+                "centre - 0": {
+                  "L_RPM": 340.0,
+                  "R_RPM": 340.0,
+                  "Pan": 2900.0,
+                  "Pan_actual": 2900.0,
+                  "Tilt": 3120.0,
+                  "Tilt_actual": 3120.0,
+                  "Left_Tilt": 1200.0,
+                  "Left_Tilt_Actual": 1200.0,
+                  "Right_Tilt": 1200.0,
+                  "Right_Tilt_Actual": 1200.0,
+                  "X": 150,
+                  "Y": 40
+                },
+                "top- 1": {
+                  "L_RPM": 340.0,
+                  "R_RPM": 340.0,
+                  "Pan": 2900.0,
+                  "Pan_actual": 2900.0,
+                  "Tilt": 3120.0,
+                  "Tilt_actual": 3120.0,
+                  "Left_Tilt": 1200.0,
+                  "Left_Tilt_Actual": 1200.0,
+                  "Right_Tilt": 1200.0,
+                  "Right_Tilt_Actual": 1200.0,
+                  "X": 150,
+                  "Y": 5
+                }
+                // ... 6 more positions
+              }
+            },
+            "spin_level_2": {
+              "spin_level": 2,
+              "positions": {
+                "centre - 0": {
+                  "L_RPM": 350.0,
+                  "R_RPM": 350.0,
+                  "Pan": 2910.0,
+                  "Pan_actual": 2910.0,
+                  "Tilt": 3126.0,
+                  "Tilt_actual": 3126.0,
+                  "Left_Tilt": 1170.0,
+                  "Left_Tilt_Actual": 1170.0,
+                  "Right_Tilt": 1230.0,
+                  "Right_Tilt_Actual": 1230.0,
+                  "X": 150,
+                  "Y": 40
+                }
+                // ... 7 more positions
+              }
+            }
+            // ... 10 more spin levels (-5 to +5)
+          }
+        },
+        "swing_level_2": {
+          "swing_level": 2,
+          "spin_levels": {
+            "spin_level_0": {
+              "spin_level": 0,
+              "positions": {
+                "centre - 0": {
+                  "L_RPM": 370.0,
+                  "R_RPM": 344.0,
+                  "Pan": 2920.0,
+                  "Pan_actual": 2920.0,
+                  "Tilt": 3124.0,
+                  "Tilt_actual": 3124.0,
+                  "Left_Tilt": 1240.0,
+                  "Left_Tilt_Actual": 1240.0,
+                  "Right_Tilt": 1160.0,
+                  "Right_Tilt_Actual": 1160.0,
+                  "X": 150,
+                  "Y": 40
+                }
+                // ... 7 more positions
+              }
+            }
+            // ... 10 more spin levels
+          }
+        }
+        // ... 10 more swing levels (-5 to +5)
+      }
+    },
+    "70_kmph": {
+      "speed": 70,
+      "swing_levels": {
+        // Same structure as 60_kmph but with different servo values
+      }
+    }
+    // ... 9 more speeds (80, 90, 100, 110, 120, 130, 140, 150, 160)
+  }
+}
+
+USAGE EXAMPLES:
+===============
+
+1. Get data for 60 kmph, Swing Level 0, Spin Level 2, Centre position:
+   data["60_kmph"]["swing_levels"]["swing_level_0"]["spin_levels"]["spin_level_2"]["positions"]["centre - 0"]
+
+2. Get all positions for 100 kmph, Swing Level 3, Spin Level -2:
+   data["100_kmph"]["swing_levels"]["swing_level_3"]["spin_levels"]["spin_level_-2"]["positions"]
+
+3. Get all spin levels for 80 kmph, Swing Level 0:
+   data["80_kmph"]["swing_levels"]["swing_level_0"]["spin_levels"]
+
+4. Get all swing levels for 120 kmph:
+   data["120_kmph"]["swing_levels"]
+
+BENEFITS OF THIS STRUCTURE:
+==========================
+- Easy to navigate by speed first
+- Clear hierarchy: Speed -> Swing Level -> Spin Level -> Position -> Servo Values
+- All servo values for each combination are grouped together
+- Easy to find specific combinations
+- Maintains all original data relationships
+- JSON format is easy to parse in any programming language

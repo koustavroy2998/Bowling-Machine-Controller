@@ -307,15 +307,19 @@
         <div class="input-section">
             <div class="input-row">
                 <div class="input-group">
-                    <label for="rpm">RPM Configuration:</label>
-                    <select id="rpm">
-                        <option value="340">340 RPM (80 km/h)</option>
-                        <option value="360">360 RPM (90 km/h)</option>
-                        <option value="380">380 RPM (100 km/h)</option>
-                        <option value="400">400 RPM (110 km/h)</option>
-                        <option value="420">420 RPM (120 km/h)</option>
-                        <option value="440">440 RPM (130 km/h)</option>
-                        <option value="460">460 RPM (140 km/h)</option>
+                    <label for="speed">Speed (km/h):</label>
+                    <select id="speed">
+                        <option value="60">60 km/h</option>
+                        <option value="70">70 km/h</option>
+                        <option value="80">80 km/h</option>
+                        <option value="90">90 km/h</option>
+                        <option value="100">100 km/h</option>
+                        <option value="110">110 km/h</option>
+                        <option value="120">120 km/h</option>
+                        <option value="130">130 km/h</option>
+                        <option value="140">140 km/h</option>
+                        <option value="150">150 km/h</option>
+                        <option value="160">160 km/h</option>
                     </select>
                 </div>
                 
@@ -327,6 +331,42 @@
                 <div class="input-group">
                     <label for="y">Y Coordinate (5-80):</label>
                     <input type="number" id="y" value="40" min="5" max="80" step="1">
+                </div>
+            </div>
+
+            <div class="input-row">
+                <div class="input-group">
+                    <label for="swingLevel">Swing Level (-5 to +5):</label>
+                    <select id="swingLevel">
+                        <option value="-5">-5 (Maximum Left Swing)</option>
+                        <option value="-4">-4</option>
+                        <option value="-3">-3</option>
+                        <option value="-2">-2</option>
+                        <option value="-1">-1</option>
+                        <option value="0" selected>0 (Straight Ball)</option>
+                        <option value="1">+1</option>
+                        <option value="2">+2</option>
+                        <option value="3">+3</option>
+                        <option value="4">+4</option>
+                        <option value="5">+5 (Maximum Right Swing)</option>
+                    </select>
+                </div>
+                
+                <div class="input-group">
+                    <label for="spinLevel">Spin Level (-5 to +5):</label>
+                    <select id="spinLevel">
+                        <option value="-5">-5 (Maximum Left Spin)</option>
+                        <option value="-4">-4</option>
+                        <option value="-3">-3</option>
+                        <option value="-2">-2</option>
+                        <option value="-1">-1</option>
+                        <option value="0" selected>0 (No Spin)</option>
+                        <option value="1">+1</option>
+                        <option value="2">+2</option>
+                        <option value="3">+3</option>
+                        <option value="4">+4</option>
+                        <option value="5">+5 (Maximum Right Spin)</option>
+                    </select>
                 </div>
             </div>
 
@@ -373,18 +413,20 @@
             getConfig(); // Automatically get configuration when preset is selected
         }
 
-        function getConfig() {
+        async function getConfig() {
             if (!bowlingController) {
                 showError('Controller not initialized. Please refresh the page.');
                 return;
             }
 
-            const rpm = parseInt(document.getElementById('rpm').value);
+            const speed = parseInt(document.getElementById('speed').value);
             const x = parseInt(document.getElementById('x').value);
             const y = parseInt(document.getElementById('y').value);
+            const swingLevel = parseInt(document.getElementById('swingLevel').value);
+            const spinLevel = parseInt(document.getElementById('spinLevel').value);
             
             try {
-                const result = bowlingController.getMachineConfig(rpm, x, y);
+                const result = await bowlingController.getMachineConfig(speed, x, y, swingLevel, spinLevel);
                 displayResult(result);
             } catch (error) {
                 console.error('Error getting configuration:', error);
@@ -406,8 +448,8 @@
                 // Basic information
                 html += '<div class="info-grid">';
                 html += `<div class="info-item">
-                    <div class="info-label">RPM & Speed</div>
-                    <div class="info-value">${result.rpm} RPM (${result.speed_kmph} km/h)</div>
+                    <div class="info-label">Speed & Levels</div>
+                    <div class="info-value">${result.speed} km/h | Swing: ${result.swingLevel} | Spin: ${result.spinLevel}</div>
                 </div>`;
                 
                 html += `<div class="info-item">
@@ -468,22 +510,32 @@
                 html += '<div class="info-grid">';
                 html += `<div class="info-item">
                     <div class="info-label">Pan</div>
-                    <div class="info-value">${result.machineSettings.pan}</div>
+                    <div class="info-value">${result.machineSettings.pan} (Actual: ${result.machineSettings.panActual})</div>
                 </div>`;
                 
                 html += `<div class="info-item">
                     <div class="info-label">Tilt</div>
-                    <div class="info-value">${result.machineSettings.tilt}</div>
+                    <div class="info-value">${result.machineSettings.tilt} (Actual: ${result.machineSettings.tiltActual})</div>
                 </div>`;
                 
                 html += `<div class="info-item">
                     <div class="info-label">Left Tilt</div>
-                    <div class="info-value">${result.machineSettings.leftTilt}</div>
+                    <div class="info-value">${result.machineSettings.leftTilt} (Actual: ${result.machineSettings.leftTiltActual})</div>
                 </div>`;
                 
                 html += `<div class="info-item">
                     <div class="info-label">Right Tilt</div>
-                    <div class="info-value">${result.machineSettings.rightTilt}</div>
+                    <div class="info-value">${result.machineSettings.rightTilt} (Actual: ${result.machineSettings.rightTiltActual})</div>
+                </div>`;
+                
+                html += `<div class="info-item">
+                    <div class="info-label">Left RPM</div>
+                    <div class="info-value">${result.machineSettings.leftRPM}</div>
+                </div>`;
+                
+                html += `<div class="info-item">
+                    <div class="info-label">Right RPM</div>
+                    <div class="info-value">${result.machineSettings.rightRPM}</div>
                 </div>`;
                 html += '</div></div>';
 
@@ -572,26 +624,48 @@
                 const configs = bowlingController.getSupportedConfigurations();
                 const resultDiv = document.getElementById('result');
                 
+                if (configs.error) {
+                    showError(configs.error);
+                    return;
+                }
+                
                 let html = '<h3>ℹ️ Supported Configurations:</h3>';
                 html += '<div class="supported-configs">';
-                html += '<table class="config-table">';
-                html += '<thead><tr><th>RPM</th><th>Speed (km/h)</th><th>Available Positions</th><th>Status</th></tr></thead>';
-                html += '<tbody>';
+                html += `<div style="margin-bottom: 20px; padding: 15px; background: #e8f5e8; border-radius: 8px;">
+                    <strong>📊 Dataset Information:</strong><br>
+                    Total Combinations: ${configs.totalCombinations.toLocaleString()}<br>
+                    Description: ${configs.description}
+                </div>`;
                 
-                configs.forEach(config => {
-                    html += `<tr>
-                        <td><strong>${config.rpm}</strong></td>
-                        <td>${config.speed_kmph}</td>
-                        <td>${config.positionCount} positions</td>
-                        <td><span style="color: #28a745;">✓ Active</span></td>
-                    </tr>`;
-                });
+                html += '<div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 15px; margin: 15px 0;">';
                 
-                html += '</tbody></table>';
+                html += `<div class="info-item">
+                    <div class="info-label">Supported Speeds</div>
+                    <div class="info-value">${configs.speeds.join(', ')} km/h</div>
+                </div>`;
+                
+                html += `<div class="info-item">
+                    <div class="info-label">Swing Levels</div>
+                    <div class="info-value">${configs.swingLevels.join(', ')}</div>
+                </div>`;
+                
+                html += `<div class="info-item">
+                    <div class="info-label">Spin Levels</div>
+                    <div class="info-value">${configs.spinLevels.join(', ')}</div>
+                </div>`;
+                
+                html += `<div class="info-item">
+                    <div class="info-label">Positions</div>
+                    <div class="info-value">${configs.positions.length} positions</div>
+                </div>`;
+                
+                html += '</div>';
+                
                 html += `<div style="margin-top: 15px; padding: 10px; background: #f8f9fa; border-radius: 5px;">
                     <strong>Coordinate Range:</strong> X: 0-300, Y: 5-80<br>
-                    <strong>Total Configurations:</strong> ${configs.length} RPM settings<br>
-                    <strong>Speed Range:</strong> ${Math.min(...configs.map(c => c.speed_kmph))} - ${Math.max(...configs.map(c => c.speed_kmph))} km/h
+                    <strong>Speed Range:</strong> ${Math.min(...configs.speeds)} - ${Math.max(...configs.speeds)} km/h<br>
+                    <strong>Level Range:</strong> -5 to +5 for both Swing and Spin<br>
+                    <strong>Total Combinations:</strong> ${configs.totalCombinations.toLocaleString()} possible configurations
                 </div>`;
                 html += '</div>';
                 
@@ -638,7 +712,7 @@
             initializeController();
             
             // Add real-time updates when inputs change
-            ['rpm', 'x', 'y'].forEach(id => {
+            ['speed', 'x', 'y', 'swingLevel', 'spinLevel'].forEach(id => {
                 document.getElementById(id).addEventListener('input', function() {
                     // Debounce the updates
                     clearTimeout(this.updateTimeout);

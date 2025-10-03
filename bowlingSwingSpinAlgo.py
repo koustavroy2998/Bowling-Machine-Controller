@@ -1,6 +1,7 @@
 import pandas as pd
 import numpy as np
 import math
+import json
 
 def generate_complete_swing_spin_straight_dataset():
     """
@@ -242,82 +243,83 @@ def generate_complete_swing_spin_straight_dataset():
             'Y': coords['y']
         }
     
-    # Generate complete dataset
-    print("\nGenerating complete dataset with straight balls (Level 0)...")
+    # Generate complete dataset organized by speed and levels
+    print("\nGenerating complete dataset organized by speed and levels...")
     np.random.seed(42)  # For consistent results
     
-    dataset_rows = []
+    # Create structured data organized by speed -> swing_level -> spin_level
+    structured_data = {}
     total_combinations = len(speeds) * len(swing_levels) * len(spin_levels)
     processed = 0
     
     for speed in speeds:
+        speed_key = f"{speed}_kmph"
+        structured_data[speed_key] = {
+            "speed": speed,
+            "swing_levels": {}
+        }
+        
         for swing_level in swing_levels:
+            swing_key = f"swing_level_{swing_level}"
+            structured_data[speed_key]["swing_levels"][swing_key] = {
+                "swing_level": swing_level,
+                "spin_levels": {}
+            }
+            
             for spin_level in spin_levels:
-                # Get values for first position (centre - 0)
-                first_values = get_servo_values(speed, swing_level, spin_level, positions[0])
+                spin_key = f"spin_level_{spin_level}"
                 
-                # Add first row with complete information
-                dataset_rows.append({
-                    'L-RPM': first_values['L_RPM'],
-                    'R-RPM': first_values['R_RPM'],
-                    'Speed': speed,
-                    'Swing_Level': f'Swing Level {swing_level}',
-                    'Spin_Level': f'Spin Level {spin_level}',
-                    'Position': positions[0],
-                    'Pan': first_values['Pan'],
-                    'Pan actual': first_values['Pan_actual'],
-                    'Tilt': first_values['Tilt'],
-                    'Tilt actual': first_values['Tilt_actual'],
-                    'Left Tilt': first_values['Left_Tilt'],
-                    'Left Tilt Actual': first_values['Left_Tilt_Actual'],
-                    'Right Tilt': first_values['Right_Tilt'],
-                    'Right Tilt Actual': first_values['Right_Tilt_Actual'],
-                    'X': first_values['X'],
-                    'Y': first_values['Y']
-                })
-                
-                # Add remaining positions with NaN for speed/level/RPM
-                for position in positions[1:]:
+                # Get servo values for all positions for this combination
+                position_data = {}
+                for position in positions:
                     pos_values = get_servo_values(speed, swing_level, spin_level, position)
-                    
-                    dataset_rows.append({
-                        'L-RPM': np.nan,
-                        'R-RPM': np.nan,
-                        'Speed': np.nan,
-                        'Swing_Level': np.nan,
-                        'Spin_Level': np.nan,
-                        'Position': position,
-                        'Pan': pos_values['Pan'],
-                        'Pan actual': pos_values['Pan_actual'],
-                        'Tilt': pos_values['Tilt'],
-                        'Tilt actual': pos_values['Tilt_actual'],
-                        'Left Tilt': pos_values['Left_Tilt'],
-                        'Left Tilt Actual': pos_values['Left_Tilt_Actual'],
-                        'Right Tilt': pos_values['Right_Tilt'],
-                        'Right Tilt Actual': pos_values['Right_Tilt_Actual'],
-                        'X': pos_values['X'],
-                        'Y': pos_values['Y']
-                    })
+                    position_data[position] = {
+                        "L_RPM": round(pos_values['L_RPM'], 1),
+                        "R_RPM": round(pos_values['R_RPM'], 1),
+                        "Pan": round(pos_values['Pan'], 1),
+                        "Pan_actual": round(pos_values['Pan_actual'], 1),
+                        "Tilt": round(pos_values['Tilt'], 1),
+                        "Tilt_actual": round(pos_values['Tilt_actual'], 1),
+                        "Left_Tilt": round(pos_values['Left_Tilt'], 1),
+                        "Left_Tilt_Actual": round(pos_values['Left_Tilt_Actual'], 1),
+                        "Right_Tilt": round(pos_values['Right_Tilt'], 1),
+                        "Right_Tilt_Actual": round(pos_values['Right_Tilt_Actual'], 1),
+                        "X": pos_values['X'],
+                        "Y": pos_values['Y']
+                    }
+                
+                # Store the spin level data
+                structured_data[speed_key]["swing_levels"][swing_key]["spin_levels"][spin_key] = {
+                    "spin_level": spin_level,
+                    "positions": position_data
+                }
                 
                 processed += 1
                 if processed % 200 == 0:
                     print(f"Progress: {processed}/{total_combinations} combinations processed")
     
-    # Create DataFrame
-    final_dataset = pd.DataFrame(dataset_rows)
+    # Create a comprehensive JSON structure with metadata
+    complete_json_data = {
+        "metadata": {
+            "total_combinations": total_combinations,
+            "speeds": speeds,
+            "swing_levels": swing_levels,
+            "spin_levels": spin_levels,
+            "positions": positions,
+            "description": "Complete bowling machine dataset organized by speed and levels with swing, spin, and straight ball data",
+            "structure": "speed -> swing_level -> spin_level -> positions -> servo_values"
+        },
+        "data": structured_data
+    }
     
-    # Save to CSV
-    csv_filename = 'FINAL_Complete_Algorithm_Dataset.csv'
-    final_dataset.to_csv(csv_filename, index=False)
-    
-    # Save to Excel as well
-    excel_filename = 'FINAL_Complete_Algorithm_Dataset.xlsx'
-    final_dataset.to_excel(excel_filename, index=False)
+    # Save to JSON file
+    json_filename = 'FINAL_Complete_Algorithm_Dataset.json'
+    with open(json_filename, 'w', encoding='utf-8') as f:
+        json.dump(complete_json_data, f, indent=2, ensure_ascii=False)
     
     print(f"\n✅ SUCCESS! Complete dataset created:")
-    print(f"📊 CSV file: {csv_filename}")
-    print(f"📊 Excel file: {excel_filename}")
-    print(f"📈 Total records: {len(final_dataset):,}")
+    print(f"📊 JSON file: {json_filename}")
+    print(f"📈 Total combinations: {total_combinations:,}")
     
     print(f"\n🎯 COMPLETE Dataset Summary:")
     print(f"• Speeds: {len(speeds)} levels (60-160 km/h)")
@@ -336,13 +338,24 @@ def generate_complete_swing_spin_straight_dataset():
     print(f"Input: Speed, X, Y, Swing_Level, Spin_Level")
     print(f"Output: L-RPM, R-RPM, Pan, Tilt, Left_Tilt, Right_Tilt")
     
-    # Show sample data including straight balls
-    print(f"\n📝 Sample data (including Level 0 straight balls):")
-    sample_cols = ['Speed', 'Swing_Level', 'Spin_Level', 'Position', 'L-RPM', 'R-RPM', 'Pan', 'Tilt']
-    sample_data = final_dataset[sample_cols].head(16)  # Show more rows to include different levels
-    print(sample_data.to_string(index=False))
+    # Show sample data structure
+    print(f"\n📝 Sample data structure:")
+    print(f"Example: 60 kmph -> Swing Level 0 -> Spin Level 2 -> centre - 0 position")
+    if structured_data:
+        sample_speed = list(structured_data.keys())[0]  # First speed
+        sample_swing = list(structured_data[sample_speed]["swing_levels"].keys())[0]  # First swing level
+        sample_spin = list(structured_data[sample_speed]["swing_levels"][sample_swing]["spin_levels"].keys())[0]  # First spin level
+        sample_position = list(structured_data[sample_speed]["swing_levels"][sample_swing]["spin_levels"][sample_spin]["positions"].keys())[0]  # First position
+        
+        sample_data = structured_data[sample_speed]["swing_levels"][sample_swing]["spin_levels"][sample_spin]["positions"][sample_position]
+        
+        print(f"Speed: {structured_data[sample_speed]['speed']} kmph")
+        print(f"Swing Level: {structured_data[sample_speed]['swing_levels'][sample_swing]['swing_level']}")
+        print(f"Spin Level: {structured_data[sample_speed]['swing_levels'][sample_swing]['spin_levels'][sample_spin]['spin_level']}")
+        print(f"Position: {sample_position}")
+        print(f"Servo Values: {sample_data}")
     
-    return final_dataset
+    return structured_data
 
 # Run the function
 if __name__ == "__main__":

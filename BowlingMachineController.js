@@ -1,570 +1,9 @@
 class BowlingMachineController {
   constructor() {
-    // Enhanced configuration with normal values from Excel
-    this.config = {
-      rpmConfigs: {
-        340: {
-          speed_kmph: 80,
-          positions: [
-            {
-              name: "centre",
-              ui: { x: 150.0, y: 40.0 },
-              machine: {
-                pan: 2900,
-                tilt: 3120,
-                leftTilt: 1150,
-                rightTilt: 1150,
-              },
-            },
-            {
-              name: "top",
-              ui: { x: 150.0, y: 5.0 },
-              machine: {
-                pan: 2900,
-                tilt: 3120,
-                leftTilt: 1550,
-                rightTilt: 1550,
-              },
-            },
-            {
-              name: "left",
-              ui: { x: 0.0, y: 40.0 },
-              machine: {
-                pan: 3150,
-                tilt: 3120,
-                leftTilt: 1150,
-                rightTilt: 1150,
-              },
-            },
-            {
-              name: "right",
-              ui: { x: 300.0, y: 40.0 },
-              machine: {
-                pan: 2700,
-                tilt: 3120,
-                leftTilt: 1150,
-                rightTilt: 1150,
-              },
-            },
-            {
-              name: "bottom",
-              ui: { x: 150.0, y: 80.0 },
-              machine: { pan: 2900, tilt: 3120, leftTilt: 750, rightTilt: 750 },
-            },
-            {
-              name: "top-mid-centre",
-              ui: { x: 150.0, y: 25.0 },
-              machine: {
-                pan: 2900,
-                tilt: 3120,
-                leftTilt: 1400,
-                rightTilt: 1400,
-              },
-            },
-            {
-              name: "top-mid-left",
-              ui: { x: 0.0, y: 25.0 },
-              machine: {
-                pan: 3100,
-                tilt: 3120,
-                leftTilt: 1400,
-                rightTilt: 1400,
-              },
-            },
-            {
-              name: "top-mid-right",
-              ui: { x: 300.0, y: 25.0 },
-              machine: {
-                pan: 2700,
-                tilt: 3120,
-                leftTilt: 1400,
-                rightTilt: 1400,
-              },
-            },
-          ],
-        },
-        360: {
-          speed_kmph: 90,
-          positions: [
-            {
-              name: "centre",
-              ui: { x: 150.0, y: 40.0 },
-              machine: {
-                pan: 2900,
-                tilt: 3300,
-                leftTilt: 1200,
-                rightTilt: 1200,
-              },
-            },
-            {
-              name: "top",
-              ui: { x: 150.0, y: 5.0 },
-              machine: {
-                pan: 2900,
-                tilt: 3200,
-                leftTilt: 1550,
-                rightTilt: 1550,
-              },
-            },
-            {
-              name: "left",
-              ui: { x: 0.0, y: 40.0 },
-              machine: {
-                pan: 3130,
-                tilt: 3300,
-                leftTilt: 1200,
-                rightTilt: 1200,
-              },
-            },
-            {
-              name: "right",
-              ui: { x: 300.0, y: 40.0 },
-              machine: {
-                pan: 2700,
-                tilt: 3300,
-                leftTilt: 1200,
-                rightTilt: 1200,
-              },
-            },
-            {
-              name: "bottom",
-              ui: { x: 150.0, y: 80.0 },
-              machine: { pan: 2900, tilt: 3300, leftTilt: 800, rightTilt: 800 },
-            },
-            {
-              name: "top-mid-centre",
-              ui: { x: 150.0, y: 25.0 },
-              machine: {
-                pan: 2900,
-                tilt: 3300,
-                leftTilt: 1400,
-                rightTilt: 1400,
-              },
-            },
-            {
-              name: "top-mid-left",
-              ui: { x: 0.0, y: 25.0 },
-              machine: {
-                pan: 3150,
-                tilt: 3300,
-                leftTilt: 1400,
-                rightTilt: 1400,
-              },
-            },
-            {
-              name: "top-mid-right",
-              ui: { x: 300.0, y: 25.0 },
-              machine: {
-                pan: 2700,
-                tilt: 3300,
-                leftTilt: 1400,
-                rightTilt: 1400,
-              },
-            },
-          ],
-        },
-        380: {
-          speed_kmph: 100,
-          positions: [
-            {
-              name: "centre",
-              ui: { x: 150.0, y: 40.0 },
-              machine: {
-                pan: 2900,
-                tilt: 3300,
-                leftTilt: 1200,
-                rightTilt: 1200,
-              },
-            },
-            {
-              name: "top",
-              ui: { x: 150.0, y: 5.0 },
-              machine: {
-                pan: 2900,
-                tilt: 3300,
-                leftTilt: 1500,
-                rightTilt: 1500,
-              },
-            },
-            {
-              name: "left",
-              ui: { x: 0.0, y: 40.0 },
-              machine: {
-                pan: 3150,
-                tilt: 3300,
-                leftTilt: 1200,
-                rightTilt: 1200,
-              },
-            },
-            {
-              name: "right",
-              ui: { x: 300.0, y: 40.0 },
-              machine: {
-                pan: 2700,
-                tilt: 3300,
-                leftTilt: 1200,
-                rightTilt: 1200,
-              },
-            },
-            {
-              name: "bottom",
-              ui: { x: 150.0, y: 80.0 },
-              machine: { pan: 2900, tilt: 3300, leftTilt: 800, rightTilt: 800 },
-            },
-            {
-              name: "top-mid-centre",
-              ui: { x: 150.0, y: 25.0 },
-              machine: {
-                pan: 2900,
-                tilt: 3300,
-                leftTilt: 1300,
-                rightTilt: 1300,
-              },
-            },
-            {
-              name: "top-mid-left",
-              ui: { x: 0.0, y: 25.0 },
-              machine: {
-                pan: 3100,
-                tilt: 3300,
-                leftTilt: 1300,
-                rightTilt: 1300,
-              },
-            },
-            {
-              name: "top-mid-right",
-              ui: { x: 300.0, y: 25.0 },
-              machine: {
-                pan: 2700,
-                tilt: 3300,
-                leftTilt: 1300,
-                rightTilt: 1300,
-              },
-            },
-          ],
-        },
-        400: {
-          speed_kmph: 110,
-          positions: [
-            {
-              name: "centre",
-              ui: { x: 150.0, y: 40.0 },
-              machine: {
-                pan: 2900,
-                tilt: 3300,
-                leftTilt: 1200,
-                rightTilt: 1200,
-              },
-            },
-            {
-              name: "top",
-              ui: { x: 150.0, y: 5.0 },
-              machine: {
-                pan: 2900,
-                tilt: 3300,
-                leftTilt: 1500,
-                rightTilt: 1500,
-              },
-            },
-            {
-              name: "left",
-              ui: { x: 0.0, y: 40.0 },
-              machine: {
-                pan: 3150,
-                tilt: 3300,
-                leftTilt: 1200,
-                rightTilt: 1200,
-              },
-            },
-            {
-              name: "right",
-              ui: { x: 300.0, y: 40.0 },
-              machine: {
-                pan: 2700,
-                tilt: 3300,
-                leftTilt: 1200,
-                rightTilt: 1200,
-              },
-            },
-            {
-              name: "bottom",
-              ui: { x: 150.0, y: 80.0 },
-              machine: { pan: 2900, tilt: 3300, leftTilt: 800, rightTilt: 800 },
-            },
-            {
-              name: "top-mid-centre",
-              ui: { x: 150.0, y: 25.0 },
-              machine: {
-                pan: 2900,
-                tilt: 3300,
-                leftTilt: 1300,
-                rightTilt: 1300,
-              },
-            },
-            {
-              name: "top-mid-left",
-              ui: { x: 0.0, y: 25.0 },
-              machine: {
-                pan: 3100,
-                tilt: 3300,
-                leftTilt: 1300,
-                rightTilt: 1300,
-              },
-            },
-            {
-              name: "top-mid-right",
-              ui: { x: 300.0, y: 25.0 },
-              machine: {
-                pan: 2700,
-                tilt: 3300,
-                leftTilt: 1300,
-                rightTilt: 1300,
-              },
-            },
-          ],
-        },
-        420: {
-          speed_kmph: 120,
-          positions: [
-            {
-              name: "centre",
-              ui: { x: 150.0, y: 40.0 },
-              machine: {
-                pan: 2900,
-                tilt: 3300,
-                leftTilt: 1200,
-                rightTilt: 1200,
-              },
-            },
-            {
-              name: "top",
-              ui: { x: 150.0, y: 5.0 },
-              machine: {
-                pan: 2900,
-                tilt: 3300,
-                leftTilt: 1500,
-                rightTilt: 1500,
-              },
-            },
-            {
-              name: "left",
-              ui: { x: 0.0, y: 40.0 },
-              machine: {
-                pan: 3100,
-                tilt: 3300,
-                leftTilt: 1200,
-                rightTilt: 1200,
-              },
-            },
-            {
-              name: "right",
-              ui: { x: 300.0, y: 40.0 },
-              machine: {
-                pan: 2630,
-                tilt: 3300,
-                leftTilt: 1200,
-                rightTilt: 1200,
-              },
-            },
-            {
-              name: "bottom",
-              ui: { x: 150.0, y: 80.0 },
-              machine: { pan: 2900, tilt: 3300, leftTilt: 750, rightTilt: 750 },
-            },
-            {
-              name: "top-mid-centre",
-              ui: { x: 150.0, y: 25.0 },
-              machine: {
-                pan: 2900,
-                tilt: 3300,
-                leftTilt: 1300,
-                rightTilt: 1300,
-              },
-            },
-            {
-              name: "top-mid-left",
-              ui: { x: 0.0, y: 25.0 },
-              machine: {
-                pan: 3100,
-                tilt: 3300,
-                leftTilt: 1300,
-                rightTilt: 1300,
-              },
-            },
-            {
-              name: "top-mid-right",
-              ui: { x: 300.0, y: 25.0 },
-              machine: {
-                pan: 2700,
-                tilt: 3300,
-                leftTilt: 1300,
-                rightTilt: 1300,
-              },
-            },
-          ],
-        },
-        440: {
-          speed_kmph: 130,
-          positions: [
-            {
-              name: "centre",
-              ui: { x: 150.0, y: 40.0 },
-              machine: {
-                pan: 2900,
-                tilt: 3200,
-                leftTilt: 1200,
-                rightTilt: 1200,
-              },
-            },
-            {
-              name: "top",
-              ui: { x: 150.0, y: 5.0 },
-              machine: {
-                pan: 2900,
-                tilt: 3200,
-                leftTilt: 1450,
-                rightTilt: 1450,
-              },
-            },
-            {
-              name: "left",
-              ui: { x: 0.0, y: 40.0 },
-              machine: {
-                pan: 3100,
-                tilt: 3200,
-                leftTilt: 1200,
-                rightTilt: 1200,
-              },
-            },
-            {
-              name: "right",
-              ui: { x: 300.0, y: 40.0 },
-              machine: {
-                pan: 2630,
-                tilt: 3200,
-                leftTilt: 1200,
-                rightTilt: 1200,
-              },
-            },
-            {
-              name: "bottom",
-              ui: { x: 150.0, y: 80.0 },
-              machine: { pan: 2900, tilt: 3200, leftTilt: 750, rightTilt: 750 },
-            },
-            {
-              name: "top-mid-centre",
-              ui: { x: 150.0, y: 25.0 },
-              machine: {
-                pan: 2900,
-                tilt: 3200,
-                leftTilt: 1300,
-                rightTilt: 1300,
-              },
-            },
-            {
-              name: "top-mid-left",
-              ui: { x: 0.0, y: 25.0 },
-              machine: {
-                pan: 3120,
-                tilt: 3200,
-                leftTilt: 1300,
-                rightTilt: 1300,
-              },
-            },
-            {
-              name: "top-mid-right",
-              ui: { x: 300.0, y: 25.0 },
-              machine: {
-                pan: 2700,
-                tilt: 3200,
-                leftTilt: 1300,
-                rightTilt: 1300,
-              },
-            },
-          ],
-        },
-        460: {
-          speed_kmph: 140,
-          positions: [
-            {
-              name: "centre",
-              ui: { x: 150.0, y: 40.0 },
-              machine: {
-                pan: 2900,
-                tilt: 3200,
-                leftTilt: 1100,
-                rightTilt: 1100,
-              },
-            },
-            {
-              name: "top",
-              ui: { x: 150.0, y: 5.0 },
-              machine: {
-                pan: 2900,
-                tilt: 3200,
-                leftTilt: 1450,
-                rightTilt: 1450,
-              },
-            },
-            {
-              name: "left",
-              ui: { x: 0.0, y: 40.0 },
-              machine: {
-                pan: 3100,
-                tilt: 3200,
-                leftTilt: 1100,
-                rightTilt: 1100,
-              },
-            },
-            {
-              name: "right",
-              ui: { x: 300.0, y: 40.0 },
-              machine: {
-                pan: 2630,
-                tilt: 3200,
-                leftTilt: 1100,
-                rightTilt: 1100,
-              },
-            },
-            {
-              name: "bottom",
-              ui: { x: 150.0, y: 80.0 },
-              machine: { pan: 2900, tilt: 3200, leftTilt: 750, rightTilt: 750 },
-            },
-            {
-              name: "top-mid-centre",
-              ui: { x: 150.0, y: 25.0 },
-              machine: {
-                pan: 2900,
-                tilt: 3200,
-                leftTilt: 1250,
-                rightTilt: 1250,
-              },
-            },
-            {
-              name: "top-mid-left",
-              ui: { x: 0.0, y: 25.0 },
-              machine: {
-                pan: 3120,
-                tilt: 3200,
-                leftTilt: 1250,
-                rightTilt: 1250,
-              },
-            },
-            {
-              name: "top-mid-right",
-              ui: { x: 300.0, y: 25.0 },
-              machine: {
-                pan: 2700,
-                tilt: 3200,
-                leftTilt: 1250,
-                rightTilt: 1250,
-              },
-            },
-          ],
-        },
-      },
-    };
+    // Initialize with empty data - will be loaded from JSON
+    this.jsonData = null;
+    this.isDataLoaded = false;
+    this.loadingPromise = null;
 
     // Smart cache configuration with limits
     this.cacheConfig = {
@@ -596,6 +35,43 @@ class BowlingMachineController {
       expiredEntries: 0, // Track expired entries removed
       totalMemoryUsage: 0, // Estimate memory usage
     };
+
+    // Load JSON data asynchronously
+    this.loadJsonData();
+  }
+
+  // Load JSON data from file
+  async loadJsonData() {
+    if (this.loadingPromise) {
+      return this.loadingPromise;
+    }
+
+    this.loadingPromise = new Promise(async (resolve, reject) => {
+      try {
+        const response = await fetch("FINAL_Complete_Algorithm_Dataset.json");
+        if (!response.ok) {
+          throw new Error(`HTTP error! status: ${response.status}`);
+        }
+        this.jsonData = await response.json();
+        this.isDataLoaded = true;
+        console.log("JSON data loaded successfully:", this.jsonData.metadata);
+        resolve(this.jsonData);
+      } catch (error) {
+        console.error("Error loading JSON data:", error);
+        this.isDataLoaded = false;
+        reject(error);
+      }
+    });
+
+    return this.loadingPromise;
+  }
+
+  // Wait for data to be loaded
+  async ensureDataLoaded() {
+    if (this.isDataLoaded) {
+      return this.jsonData;
+    }
+    return await this.loadJsonData();
   }
 
   // Smart cache management with multiple strategies
@@ -809,18 +285,127 @@ class BowlingMachineController {
     return "STANDARD_PRECISION_BOTTOM";
   }
 
-  // Main configuration method with better error handling
-  getMachineConfig(rpm, x, y) {
-    // Input validation
-    if (!Number.isFinite(rpm) || !Number.isFinite(x) || !Number.isFinite(y)) {
-      return {
-        error: `Invalid input parameters. RPM: ${rpm}, X: ${x}, Y: ${y}`,
-      };
+  // Interpolation method for JSON data
+  calculateInterpolationFromJson(
+    speed,
+    targetX,
+    targetY,
+    swingLevel,
+    spinLevel
+  ) {
+    const cacheKey = `${speed}-${targetX}-${targetY}-${swingLevel}-${spinLevel}`;
+
+    // Check cache first
+    const cachedResult = this.getCachedResult(cacheKey);
+    if (cachedResult) {
+      return cachedResult;
     }
 
-    if (!this.config.rpmConfigs[rpm]) {
-      const available = Object.keys(this.config.rpmConfigs).join(", ");
-      return { error: `RPM ${rpm} not supported. Available: ${available}` };
+    const speedData = this.jsonData.data[`${speed}_kmph`];
+    const swingKey = `swing_level_${swingLevel}`;
+    const spinKey = `spin_level_${spinLevel}`;
+    const levelData = speedData.swing_levels[swingKey].spin_levels[spinKey];
+
+    const tolerance = this.getRegionTolerance(targetY);
+    const positions = levelData.positions;
+
+    // Calculate distances and weights for all positions
+    const relevantPoints = Object.entries(positions).map(
+      ([positionName, positionData]) => {
+        const distance = Math.sqrt(
+          Math.pow(positionData.X - targetX, 2) +
+            Math.pow(positionData.Y - targetY, 2)
+        );
+
+        let regionMultiplier = this.calculateRegionMultiplier(targetY, {
+          name: positionName,
+        });
+        let proximityBonus = distance < tolerance ? 1.5 : 1.0;
+
+        return {
+          name: positionName,
+          distance: distance,
+          weight: (regionMultiplier * proximityBonus) / (distance + 0.1),
+          isRelevant: distance <= tolerance * 2.5,
+          data: positionData,
+        };
+      }
+    );
+
+    // Use top 4-6 points based on target precision requirements
+    const pointCount = targetY <= 30 ? 6 : 4;
+    const bestPoints = relevantPoints
+      .sort((a, b) => b.weight - a.weight)
+      .slice(0, pointCount);
+
+    // Weighted interpolation
+    let totalWeight = 0;
+    const weightedSums = {
+      pan: 0,
+      panActual: 0,
+      tilt: 0,
+      tiltActual: 0,
+      leftTilt: 0,
+      leftTiltActual: 0,
+      rightTilt: 0,
+      rightTiltActual: 0,
+      leftRPM: 0,
+      rightRPM: 0,
+    };
+
+    bestPoints.forEach((point) => {
+      const adjustedWeight =
+        point.weight * Math.exp(-point.distance / tolerance);
+      totalWeight += adjustedWeight;
+
+      weightedSums.pan += point.data.Pan * adjustedWeight;
+      weightedSums.panActual += point.data.Pan_actual * adjustedWeight;
+      weightedSums.tilt += point.data.Tilt * adjustedWeight;
+      weightedSums.tiltActual += point.data.Tilt_actual * adjustedWeight;
+      weightedSums.leftTilt += point.data.Left_Tilt * adjustedWeight;
+      weightedSums.leftTiltActual +=
+        point.data.Left_Tilt_Actual * adjustedWeight;
+      weightedSums.rightTilt += point.data.Right_Tilt * adjustedWeight;
+      weightedSums.rightTiltActual +=
+        point.data.Right_Tilt_Actual * adjustedWeight;
+      weightedSums.leftRPM += point.data.L_RPM * adjustedWeight;
+      weightedSums.rightRPM += point.data.R_RPM * adjustedWeight;
+    });
+
+    const result = {
+      pan: Math.round(weightedSums.pan / totalWeight),
+      panActual: Math.round(weightedSums.panActual / totalWeight),
+      tilt: Math.round(weightedSums.tilt / totalWeight),
+      tiltActual: Math.round(weightedSums.tiltActual / totalWeight),
+      leftTilt: Math.round(weightedSums.leftTilt / totalWeight),
+      leftTiltActual: Math.round(weightedSums.leftTiltActual / totalWeight),
+      rightTilt: Math.round(weightedSums.rightTilt / totalWeight),
+      rightTiltActual: Math.round(weightedSums.rightTiltActual / totalWeight),
+      leftRPM: Math.round(weightedSums.leftRPM / totalWeight),
+      rightRPM: Math.round(weightedSums.rightRPM / totalWeight),
+      usedPoints: bestPoints.length,
+      accuracy: this.calculateAccuracyScore(bestPoints, targetX, targetY),
+      confidence: this.calculateConfidenceScore(bestPoints, tolerance),
+    };
+
+    // Cache the result
+    this.setCachedResult(cacheKey, result);
+    return result;
+  }
+
+  // Main configuration method with new parameters
+  async getMachineConfig(speed, x, y, swingLevel, spinLevel) {
+    // Input validation
+    if (
+      !Number.isFinite(speed) ||
+      !Number.isFinite(x) ||
+      !Number.isFinite(y) ||
+      !Number.isFinite(swingLevel) ||
+      !Number.isFinite(spinLevel)
+    ) {
+      return {
+        error: `Invalid input parameters. Speed: ${speed}, X: ${x}, Y: ${y}, Swing: ${swingLevel}, Spin: ${spinLevel}`,
+      };
     }
 
     // Boundary validation
@@ -830,39 +415,112 @@ class BowlingMachineController {
       };
     }
 
-    const rpmConfig = this.config.rpmConfigs[rpm];
-
-    // Check for exact matches first
-    const exactMatch = rpmConfig.positions.find(
-      (pos) => Math.abs(pos.ui.x - x) < 0.5 && Math.abs(pos.ui.y - y) < 0.5
-    );
-
-    if (exactMatch) {
-      this.metrics.exactMatches++;
+    if (swingLevel < -5 || swingLevel > 5 || spinLevel < -5 || spinLevel > 5) {
       return {
-        rpm,
-        speed_kmph: rpmConfig.speed_kmph,
-        coordinates: { x, y },
-        machineSettings: exactMatch.machine,
-        matchType: "exact",
-        referencePoint: exactMatch.name,
-        accuracy: 100,
-        confidence: 100,
+        error: `Levels out of bounds. Swing: ${swingLevel} (-5 to +5), Spin: ${spinLevel} (-5 to +5)`,
       };
     }
 
-    // Use advanced interpolation with performance metrics
-    const interpolated = this.calculateAdvancedInterpolation(rpm, x, y);
+    // Ensure data is loaded
+    try {
+      await this.ensureDataLoaded();
+    } catch (error) {
+      return {
+        error: `Failed to load data: ${error.message}`,
+      };
+    }
+
+    // Check if speed is supported
+    if (!this.jsonData.data[`${speed}_kmph`]) {
+      const availableSpeeds = this.jsonData.metadata.speeds.join(", ");
+      return {
+        error: `Speed ${speed} km/h not supported. Available: ${availableSpeeds}`,
+      };
+    }
+
+    // Get the exact data for the specified parameters
+    const speedData = this.jsonData.data[`${speed}_kmph`];
+    const swingKey = `swing_level_${swingLevel}`;
+    const spinKey = `spin_level_${spinLevel}`;
+
+    if (!speedData.swing_levels[swingKey]) {
+      return { error: `Swing level ${swingLevel} not supported` };
+    }
+
+    if (!speedData.swing_levels[swingKey].spin_levels[spinKey]) {
+      return { error: `Spin level ${spinLevel} not supported` };
+    }
+
+    const levelData = speedData.swing_levels[swingKey].spin_levels[spinKey];
+
+    // Find the closest position to the target coordinates
+    const positions = levelData.positions;
+    let closestPosition = null;
+    let minDistance = Infinity;
+
+    for (const [positionName, positionData] of Object.entries(positions)) {
+      const distance = Math.sqrt(
+        Math.pow(positionData.X - x, 2) + Math.pow(positionData.Y - y, 2)
+      );
+      if (distance < minDistance) {
+        minDistance = distance;
+        closestPosition = { name: positionName, data: positionData };
+      }
+    }
+
+    // Check for exact match (within 5 units)
+    if (minDistance < 5) {
+      this.metrics.exactMatches++;
+      return {
+        speed,
+        swingLevel,
+        spinLevel,
+        coordinates: { x, y },
+        machineSettings: {
+          pan: Math.round(closestPosition.data.Pan),
+          panActual: Math.round(closestPosition.data.Pan_actual),
+          tilt: Math.round(closestPosition.data.Tilt),
+          tiltActual: Math.round(closestPosition.data.Tilt_actual),
+          leftTilt: Math.round(closestPosition.data.Left_Tilt),
+          leftTiltActual: Math.round(closestPosition.data.Left_Tilt_Actual),
+          rightTilt: Math.round(closestPosition.data.Right_Tilt),
+          rightTiltActual: Math.round(closestPosition.data.Right_Tilt_Actual),
+          leftRPM: Math.round(closestPosition.data.L_RPM),
+          rightRPM: Math.round(closestPosition.data.R_RPM),
+        },
+        matchType: "exact",
+        referencePoint: closestPosition.name,
+        accuracy: 100,
+        confidence: 100,
+        distance: minDistance,
+      };
+    }
+
+    // Use interpolation for non-exact matches
+    const interpolated = this.calculateInterpolationFromJson(
+      speed,
+      x,
+      y,
+      swingLevel,
+      spinLevel
+    );
 
     return {
-      rpm,
-      speed_kmph: rpmConfig.speed_kmph,
+      speed,
+      swingLevel,
+      spinLevel,
       coordinates: { x, y },
       machineSettings: {
         pan: interpolated.pan,
+        panActual: interpolated.panActual,
         tilt: interpolated.tilt,
+        tiltActual: interpolated.tiltActual,
         leftTilt: interpolated.leftTilt,
+        leftTiltActual: interpolated.leftTiltActual,
         rightTilt: interpolated.rightTilt,
+        rightTiltActual: interpolated.rightTiltActual,
+        leftRPM: interpolated.leftRPM,
+        rightRPM: interpolated.rightRPM,
       },
       matchType: "interpolated",
       interpolationData: {
@@ -962,13 +620,20 @@ class BowlingMachineController {
     return "Cache performing optimally";
   }
 
-  // Get all supported RPMs and speeds
+  // Get all supported configurations from JSON data
   getSupportedConfigurations() {
-    return Object.entries(this.config.rpmConfigs).map(([rpm, config]) => ({
-      rpm: parseInt(rpm),
-      speed_kmph: config.speed_kmph,
-      positionCount: config.positions.length,
-    }));
+    if (!this.isDataLoaded) {
+      return { error: "Data not loaded yet" };
+    }
+
+    return {
+      speeds: this.jsonData.metadata.speeds,
+      swingLevels: this.jsonData.metadata.swing_levels,
+      spinLevels: this.jsonData.metadata.spin_levels,
+      positions: this.jsonData.metadata.positions,
+      totalCombinations: this.jsonData.metadata.total_combinations,
+      description: this.jsonData.metadata.description,
+    };
   }
 
   // Cache configuration getter/setter
