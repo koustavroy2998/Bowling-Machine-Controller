@@ -1,0 +1,674 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Bowling Machine Controller</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            margin: 0;
+            padding: 20px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            color: #333;
+        }
+
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 15px;
+            padding: 30px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+        }
+
+        h1 {
+            text-align: center;
+            color: #4a5568;
+            margin-bottom: 30px;
+            font-size: 2.2em;
+        }
+
+        .input-section {
+            background: #f8f9fa;
+            padding: 25px;
+            border-radius: 10px;
+            margin-bottom: 20px;
+            border-left: 5px solid #4CAF50;
+        }
+
+        .input-row {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 20px;
+            align-items: center;
+            margin-bottom: 15px;
+        }
+
+        .input-group {
+            flex: 1;
+            min-width: 200px;
+        }
+
+        label {
+            display: block;
+            font-weight: 600;
+            margin-bottom: 8px;
+            color: #2d3748;
+        }
+
+        input, select {
+            width: 100%;
+            padding: 12px;
+            border: 2px solid #e2e8f0;
+            border-radius: 8px;
+            font-size: 16px;
+            transition: all 0.3s ease;
+            box-sizing: border-box;
+        }
+
+        input:focus, select:focus {
+            outline: none;
+            border-color: #4CAF50;
+            box-shadow: 0 0 0 3px rgba(76, 175, 80, 0.1);
+        }
+
+        .button-group {
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+            justify-content: center;
+            margin-top: 20px;
+        }
+
+        button {
+            padding: 12px 25px;
+            font-size: 16px;
+            font-weight: 600;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            min-width: 150px;
+        }
+
+        .primary-btn {
+            background: linear-gradient(135deg, #4CAF50, #45a049);
+            color: white;
+        }
+
+        .secondary-btn {
+            background: linear-gradient(135deg, #2196F3, #1976D2);
+            color: white;
+        }
+
+        .info-btn {
+            background: linear-gradient(135deg, #FF9800, #F57C00);
+            color: white;
+        }
+
+        .clear-btn {
+            background: linear-gradient(135deg, #dc3545, #c82333);
+            color: white;
+        }
+
+        button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(0,0,0,0.2);
+        }
+
+        .result {
+            background: linear-gradient(135deg, #f8f9fa, #e9ecef);
+            padding: 25px;
+            margin-top: 20px;
+            border-radius: 10px;
+            border-left: 5px solid #28a745;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+        }
+
+        .error {
+            background: linear-gradient(135deg, #ffe6e6, #ffcccc);
+            border-left-color: #dc3545;
+        }
+
+        .settings {
+            background: linear-gradient(135deg, #e8f5e8, #d4edda);
+            padding: 20px;
+            margin: 15px 0;
+            border-radius: 8px;
+            border-left: 4px solid #28a745;
+        }
+
+        .metrics {
+            background: linear-gradient(135deg, #e3f2fd, #bbdefb);
+            padding: 20px;
+            margin: 15px 0;
+            border-radius: 8px;
+            border-left: 4px solid #2196F3;
+        }
+
+        .info-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 15px;
+            margin: 15px 0;
+        }
+
+        .info-item {
+            background: white;
+            padding: 15px;
+            border-radius: 8px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+        }
+
+        .info-label {
+            font-weight: 600;
+            color: #4a5568;
+            margin-bottom: 5px;
+        }
+
+        .info-value {
+            font-size: 1.1em;
+            color: #2d3748;
+        }
+
+        .accuracy-bar {
+            width: 100%;
+            height: 12px;
+            background: #e2e8f0;
+            border-radius: 6px;
+            overflow: hidden;
+            margin-top: 8px;
+        }
+
+        .accuracy-fill {
+            height: 100%;
+            background: linear-gradient(90deg, #4CAF50, #8BC34A);
+            transition: width 0.5s ease;
+            border-radius: 6px;
+        }
+
+        .preset-buttons {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+            margin-top: 15px;
+            align-items: center;
+        }
+
+        .preset-btn {
+            padding: 8px 15px;
+            background: #6c757d;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 14px;
+            transition: all 0.3s ease;
+        }
+
+        .preset-btn:hover {
+            background: #5a6268;
+            transform: scale(1.05);
+        }
+
+        .supported-configs {
+            background: #fff3cd;
+            border: 1px solid #ffeaa7;
+            border-radius: 8px;
+            padding: 15px;
+            margin: 15px 0;
+        }
+
+        .config-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 10px;
+        }
+
+        .config-table th,
+        .config-table td {
+            padding: 10px 12px;
+            text-align: left;
+            border-bottom: 1px solid #ddd;
+        }
+
+        .config-table th {
+            background: #f8f9fa;
+            font-weight: 600;
+            color: #495057;
+        }
+
+        .config-table tr:hover {
+            background: #f8f9fa;
+        }
+
+        @media (max-width: 768px) {
+            .container {
+                padding: 20px;
+                margin: 10px;
+            }
+            
+            .input-row {
+                flex-direction: column;
+            }
+            
+            .info-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .button-group {
+                flex-direction: column;
+            }
+
+            button {
+                min-width: auto;
+            }
+        }
+
+        .status-indicator {
+            display: inline-block;
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            margin-right: 8px;
+        }
+
+        .status-exact { background: #28a745; }
+        .status-interpolated { background: #ffc107; }
+        .status-error { background: #dc3545; }
+
+        .match-type {
+            display: inline-flex;
+            align-items: center;
+            padding: 4px 12px;
+            border-radius: 20px;
+            font-size: 14px;
+            font-weight: 600;
+            margin-left: 10px;
+        }
+
+        .match-exact {
+            background: #d4edda;
+            color: #155724;
+        }
+
+        .match-interpolated {
+            background: #fff3cd;
+            color: #856404;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🎳 Bowling Machine Controller</h1>
+        
+        <div class="input-section">
+            <div class="input-row">
+                <div class="input-group">
+                    <label for="rpm">RPM Configuration:</label>
+                    <select id="rpm">
+                        <option value="340">340 RPM (80 km/h)</option>
+                        <option value="360">360 RPM (90 km/h)</option>
+                        <option value="380">380 RPM (100 km/h)</option>
+                        <option value="400">400 RPM (110 km/h)</option>
+                        <option value="420">420 RPM (120 km/h)</option>
+                        <option value="440">440 RPM (130 km/h)</option>
+                        <option value="460">460 RPM (140 km/h)</option>
+                    </select>
+                </div>
+                
+                <div class="input-group">
+                    <label for="x">X Coordinate (0-300):</label>
+                    <input type="number" id="x" value="150" min="0" max="300" step="1">
+                </div>
+                
+                <div class="input-group">
+                    <label for="y">Y Coordinate (5-80):</label>
+                    <input type="number" id="y" value="40" min="5" max="80" step="1">
+                </div>
+            </div>
+
+            <div class="preset-buttons">
+                <span style="font-weight: 600; margin-right: 10px; color: #4a5568;">Quick Presets:</span>
+                <button class="preset-btn" onclick="setPreset(150, 5)">Top</button>
+                <button class="preset-btn" onclick="setPreset(150, 25)">Top-Mid</button>
+                <button class="preset-btn" onclick="setPreset(150, 40)">Center</button>
+                <button class="preset-btn" onclick="setPreset(0, 40)">Left</button>
+                <button class="preset-btn" onclick="setPreset(300, 40)">Right</button>
+                <button class="preset-btn" onclick="setPreset(150, 80)">Bottom</button>
+            </div>
+            
+            <div class="button-group">
+                <button class="primary-btn" onclick="getConfig()">🎯 Get Configuration</button>
+                <button class="secondary-btn" onclick="showMetrics()">📊 Performance Metrics</button>
+                <button class="info-btn" onclick="showSupportedConfigs()">ℹ️ Supported Configs</button>
+                <button class="clear-btn" onclick="clearCache()">🗑️ Clear Cache</button>
+            </div>
+        </div>
+        
+        <div id="result" class="result" style="display: none;"></div>
+    </div>
+
+    <!-- External BowlingMachineController.js file -->
+    <script src="BowlingMachineController.js"></script>
+    
+    <script>
+        let bowlingController;
+        
+        function initializeController() {
+            try {
+                bowlingController = new BowlingMachineController();
+                console.log('BowlingMachineController initialized successfully');
+            } catch (error) {
+                console.error('Error initializing BowlingMachineController:', error);
+                showError('Failed to initialize controller. Please check if BowlingMachineController.js is loaded correctly.');
+            }
+        }
+
+        function setPreset(x, y) {
+            document.getElementById('x').value = x;
+            document.getElementById('y').value = y;
+            getConfig(); // Automatically get configuration when preset is selected
+        }
+
+        function getConfig() {
+            if (!bowlingController) {
+                showError('Controller not initialized. Please refresh the page.');
+                return;
+            }
+
+            const rpm = parseInt(document.getElementById('rpm').value);
+            const x = parseInt(document.getElementById('x').value);
+            const y = parseInt(document.getElementById('y').value);
+            
+            try {
+                const result = bowlingController.getMachineConfig(rpm, x, y);
+                displayResult(result);
+            } catch (error) {
+                console.error('Error getting configuration:', error);
+                showError('Error occurred while getting configuration: ' + error.message);
+            }
+        }
+
+        function displayResult(result) {
+            const resultDiv = document.getElementById('result');
+            let html = '<h3>🎯 Configuration Result:</h3>';
+            
+            if (result.error) {
+                html = `<h3>❌ Configuration Error:</h3>`;
+                html += `<div style="color: #dc3545; font-weight: 600; margin-bottom: 15px;">${result.error}</div>`;
+                resultDiv.className = 'result error';
+            } else {
+                resultDiv.className = 'result';
+                
+                // Basic information
+                html += '<div class="info-grid">';
+                html += `<div class="info-item">
+                    <div class="info-label">RPM & Speed</div>
+                    <div class="info-value">${result.rpm} RPM (${result.speed_kmph} km/h)</div>
+                </div>`;
+                
+                html += `<div class="info-item">
+                    <div class="info-label">Target Coordinates</div>
+                    <div class="info-value">X: ${result.coordinates.x}, Y: ${result.coordinates.y}</div>
+                </div>`;
+
+                html += `<div class="info-item">
+                    <div class="info-label">Match Type</div>
+                    <div class="info-value">
+                        <span class="status-indicator status-${result.matchType}"></span>
+                        ${result.matchType.toUpperCase()}
+                        <span class="match-type match-${result.matchType}">${result.matchType === 'exact' ? 'Perfect Match' : 'Calculated'}</span>
+                    </div>
+                </div>`;
+
+                if (result.interpolationData) {
+                    html += `<div class="info-item">
+                        <div class="info-label">Accuracy Score</div>
+                        <div class="info-value">
+                            ${result.interpolationData.accuracy}%
+                            <div class="accuracy-bar">
+                                <div class="accuracy-fill" style="width: ${result.interpolationData.accuracy}%"></div>
+                            </div>
+                        </div>
+                    </div>`;
+                } else {
+                    html += `<div class="info-item">
+                        <div class="info-label">Accuracy Score</div>
+                        <div class="info-value">
+                            ${result.accuracy || 100}%
+                            <div class="accuracy-bar">
+                                <div class="accuracy-fill" style="width: ${result.accuracy || 100}%"></div>
+                            </div>
+                        </div>
+                    </div>`;
+                }
+
+                if (result.referencePoint) {
+                    html += `<div class="info-item">
+                        <div class="info-label">Reference Point</div>
+                        <div class="info-value">${result.referencePoint}</div>
+                    </div>`;
+                }
+
+                if (result.interpolationData) {
+                    html += `<div class="info-item">
+                        <div class="info-label">Region & Points</div>
+                        <div class="info-value">${result.interpolationData.region}<br>
+                        <small>Used ${result.interpolationData.usedPoints} points, Tolerance: ${result.interpolationData.tolerance}px</small></div>
+                    </div>`;
+                }
+
+                html += '</div>';
+                
+                // Machine Settings
+                html += '<div class="settings"><h4>🔧 Machine Settings:</h4>';
+                html += '<div class="info-grid">';
+                html += `<div class="info-item">
+                    <div class="info-label">Pan</div>
+                    <div class="info-value">${result.machineSettings.pan}</div>
+                </div>`;
+                
+                html += `<div class="info-item">
+                    <div class="info-label">Tilt</div>
+                    <div class="info-value">${result.machineSettings.tilt}</div>
+                </div>`;
+                
+                html += `<div class="info-item">
+                    <div class="info-label">Left Tilt</div>
+                    <div class="info-value">${result.machineSettings.leftTilt}</div>
+                </div>`;
+                
+                html += `<div class="info-item">
+                    <div class="info-label">Right Tilt</div>
+                    <div class="info-value">${result.machineSettings.rightTilt}</div>
+                </div>`;
+                html += '</div></div>';
+
+                // Additional interpolation details for non-exact matches
+                if (result.interpolationData && result.interpolationData.confidence) {
+                    html += `<div style="background: #e8f4f8; padding: 15px; border-radius: 8px; margin-top: 15px;">
+                        <strong>📈 Interpolation Details:</strong><br>
+                        Confidence: ${result.interpolationData.confidence}% | 
+                        Accuracy: ${result.interpolationData.accuracy}% | 
+                        Region: ${result.interpolationData.region}
+                    </div>`;
+                }
+            }
+            
+            resultDiv.innerHTML = html;
+            resultDiv.style.display = 'block';
+        }
+
+        function showMetrics() {
+            if (!bowlingController || typeof bowlingController.getPerformanceMetrics !== 'function') {
+                showError('Performance metrics not available. Please check your BowlingMachineController.js file.');
+                return;
+            }
+
+            try {
+                const metrics = bowlingController.getPerformanceMetrics();
+                const resultDiv = document.getElementById('result');
+                
+                let html = '<h3>📊 Performance Metrics:</h3>';
+                html += '<div class="metrics">';
+                html += '<div class="info-grid">';
+                
+                html += `<div class="info-item">
+                    <div class="info-label">Total Operations</div>
+                    <div class="info-value">${metrics.totalOperations}</div>
+                </div>`;
+
+                html += `<div class="info-item">
+                    <div class="info-label">Cache Size</div>
+                    <div class="info-value">${metrics.cacheSize} entries</div>
+                </div>`;
+
+                html += `<div class="info-item">
+                    <div class="info-label">Cache Hit Rate</div>
+                    <div class="info-value">${metrics.cacheHitRate}%</div>
+                </div>`;
+
+                html += `<div class="info-item">
+                    <div class="info-label">Exact Match Rate</div>
+                    <div class="info-value">${metrics.exactMatchRate}%</div>
+                </div>`;
+
+                html += `<div class="info-item">
+                    <div class="info-label">Cache Hits</div>
+                    <div class="info-value">${metrics.cacheHits}</div>
+                </div>`;
+
+                html += `<div class="info-item">
+                    <div class="info-label">Interpolations</div>
+                    <div class="info-value">${metrics.interpolations}</div>
+                </div>`;
+
+                html += `<div class="info-item">
+                    <div class="info-label">Exact Matches</div>
+                    <div class="info-value">${metrics.exactMatches}</div>
+                </div>`;
+
+                html += '</div></div>';
+                
+                resultDiv.innerHTML = html;
+                resultDiv.className = 'result';
+                resultDiv.style.display = 'block';
+            } catch (error) {
+                console.error('Error getting metrics:', error);
+                showError('Error getting performance metrics: ' + error.message);
+            }
+        }
+
+        function showSupportedConfigs() {
+            if (!bowlingController || typeof bowlingController.getSupportedConfigurations !== 'function') {
+                showError('Supported configurations not available. Please check your BowlingMachineController.js file.');
+                return;
+            }
+
+            try {
+                const configs = bowlingController.getSupportedConfigurations();
+                const resultDiv = document.getElementById('result');
+                
+                let html = '<h3>ℹ️ Supported Configurations:</h3>';
+                html += '<div class="supported-configs">';
+                html += '<table class="config-table">';
+                html += '<thead><tr><th>RPM</th><th>Speed (km/h)</th><th>Available Positions</th><th>Status</th></tr></thead>';
+                html += '<tbody>';
+                
+                configs.forEach(config => {
+                    html += `<tr>
+                        <td><strong>${config.rpm}</strong></td>
+                        <td>${config.speed_kmph}</td>
+                        <td>${config.positionCount} positions</td>
+                        <td><span style="color: #28a745;">✓ Active</span></td>
+                    </tr>`;
+                });
+                
+                html += '</tbody></table>';
+                html += `<div style="margin-top: 15px; padding: 10px; background: #f8f9fa; border-radius: 5px;">
+                    <strong>Coordinate Range:</strong> X: 0-300, Y: 5-80<br>
+                    <strong>Total Configurations:</strong> ${configs.length} RPM settings<br>
+                    <strong>Speed Range:</strong> ${Math.min(...configs.map(c => c.speed_kmph))} - ${Math.max(...configs.map(c => c.speed_kmph))} km/h
+                </div>`;
+                html += '</div>';
+                
+                resultDiv.innerHTML = html;
+                resultDiv.className = 'result';
+                resultDiv.style.display = 'block';
+            } catch (error) {
+                console.error('Error getting supported configs:', error);
+                showError('Error getting supported configurations: ' + error.message);
+            }
+        }
+
+        function clearCache() {
+            if (!bowlingController || typeof bowlingController.clearCache !== 'function') {
+                showError('Cache clear function not available.');
+                return;
+            }
+
+            try {
+                bowlingController.clearCache();
+                const resultDiv = document.getElementById('result');
+                resultDiv.innerHTML = '<h3>🗑️ Cache Cleared</h3><p>Performance cache has been cleared successfully. Metrics reset to zero.</p>';
+                resultDiv.className = 'result';
+                resultDiv.style.display = 'block';
+                
+                setTimeout(() => {
+                    resultDiv.style.display = 'none';
+                }, 2000);
+            } catch (error) {
+                console.error('Error clearing cache:', error);
+                showError('Error clearing cache: ' + error.message);
+            }
+        }
+
+        function showError(message) {
+            const resultDiv = document.getElementById('result');
+            resultDiv.innerHTML = `<h3>❌ Error:</h3><div style="color: #dc3545; font-weight: 600;">${message}</div>`;
+            resultDiv.className = 'result error';
+            resultDiv.style.display = 'block';
+        }
+
+        // Auto-update configuration when inputs change
+        document.addEventListener('DOMContentLoaded', function() {
+            initializeController();
+            
+            // Add real-time updates when inputs change
+            ['rpm', 'x', 'y'].forEach(id => {
+                document.getElementById(id).addEventListener('input', function() {
+                    // Debounce the updates
+                    clearTimeout(this.updateTimeout);
+                    this.updateTimeout = setTimeout(getConfig, 500);
+                });
+            });
+            
+            // Get initial configuration
+            setTimeout(getConfig, 100);
+        });
+
+        // Keyboard shortcuts
+        document.addEventListener('keydown', function(event) {
+            if (event.ctrlKey || event.metaKey) {
+                switch(event.key) {
+                    case 'Enter':
+                        event.preventDefault();
+                        getConfig();
+                        break;
+                    case 'm':
+                        event.preventDefault();
+                        showMetrics();
+                        break;
+                    case 'i':
+                        event.preventDefault();
+                        showSupportedConfigs();
+                        break;
+                }
+            }
+        });
+    </script>
+</body>
+</html>
