@@ -48,7 +48,7 @@ class BowlingMachineController {
 
     this.loadingPromise = new Promise(async (resolve, reject) => {
       try {
-        const response = await fetch("FINAL_Complete_Algorithm_Dataset.json");
+        const response = await fetch("bowling_data.json");
         if (!response.ok) {
           throw new Error(`HTTP error! status: ${response.status}`);
         }

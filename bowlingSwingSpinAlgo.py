@@ -400,7 +400,7 @@ if __name__ == "__main__":
         tilt_offset=-8,     # Example: Tilt needs -8 adjustment at 110 kmph
         left_rpm_offset=5,  # Example: Left RPM needs +5 adjustment at 110 kmph
         right_rpm_offset=3, # Example: Right RPM needs +3 adjustment at 110 kmph
-        output_filename='data.json'
+        output_filename='bowling_data.json'
     )
     
     # Safety compliance check
