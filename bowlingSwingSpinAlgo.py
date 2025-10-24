@@ -3,7 +3,6 @@ import numpy as np
 import json
 from datetime import datetime
 
-
 def generate_complete_corrected_swing_spin_dataset_with_offsets(
     pan_offset=0, 
     tilt_offset=0, 
@@ -12,13 +11,13 @@ def generate_complete_corrected_swing_spin_dataset_with_offsets(
 ):
     """
     Generate complete dataset with OFFSET CORRECTION capability
-    Offsets are calculated at 110 kmph and applied proportionally across all speeds
+    Offsets are applied AS-IS to all configurations without any scaling
     All values are clamped to safe operating ranges
     """
     
     print("🚀 Starting OFFSET-CORRECTED Dataset Generation")
     print("="*60)
-    print(f"📊 Applied Offsets:")
+    print(f"📊 Applied Offsets (Applied AS-IS to ALL configurations):")
     print(f"   Pan Offset: {pan_offset}")
     print(f"   Tilt Offset: {tilt_offset}")
     print(f"   Left RPM Offset: {left_rpm_offset}")
@@ -57,17 +56,11 @@ def generate_complete_corrected_swing_spin_dataset_with_offsets(
         ranges = SAFETY_RANGES.get(param_type, {'min': 0, 'max': 10000})
         return max(ranges['min'], min(ranges['max'], value))
     
-    def calculate_speed_scaling_factor(speed, reference_speed=110):
-        """Calculate scaling factor for offset application based on speed"""
-        # Linear scaling: higher speeds get proportionally higher offsets
-        return speed / reference_speed
-    
     def calculate_corrected_pattern_values_with_offsets(speed, swing_level, spin_level, position):
         """
-        Calculate servo values with OFFSET CORRECTION applied
+        Calculate servo values with OFFSET CORRECTION applied AS-IS (no scaling)
         """
         coords = pos_coords.get(position, {'x': 150, 'y': 40})
-        scaling_factor = calculate_speed_scaling_factor(speed)
         
         # ===== BASE VALUES FROM ACTUAL DATA =====
         
@@ -164,23 +157,17 @@ def generate_complete_corrected_swing_spin_dataset_with_offsets(
             left_rpm = base_rpm + swing_rpm_left
             right_rpm = base_rpm + swing_rpm_right
         
-        # ===== APPLY OFFSETS WITH SCALING =====
+        # ===== APPLY OFFSETS AS-IS (NO SCALING) =====
         
-        # Apply scaled offsets
-        scaled_pan_offset = pan_offset * scaling_factor
-        scaled_tilt_offset = tilt_offset * scaling_factor
-        scaled_left_rpm_offset = left_rpm_offset * scaling_factor
-        scaled_right_rpm_offset = right_rpm_offset * scaling_factor
-        
-        # Calculate final values with offsets
-        final_pan = base_pan + swing_pan_effect + spin_pan_effect + scaled_pan_offset
-        final_tilt = base_tilt + spin_tilt_effect + scaled_tilt_offset
+        # Calculate final values with offsets applied directly
+        final_pan = base_pan + swing_pan_effect + spin_pan_effect + pan_offset
+        final_tilt = base_tilt + spin_tilt_effect + tilt_offset
         
         final_left_tilt = base_left_tilt + spin_left_tilt_effect
         final_right_tilt = base_right_tilt + spin_right_tilt_effect
         
-        final_left_rpm = left_rpm + scaled_left_rpm_offset
-        final_right_rpm = right_rpm + scaled_right_rpm_offset
+        final_left_rpm = left_rpm + left_rpm_offset
+        final_right_rpm = right_rpm + right_rpm_offset
         
         # ===== APPLY SAFETY CLAMPING =====
         
@@ -214,7 +201,12 @@ def generate_complete_corrected_swing_spin_dataset_with_offsets(
             'Right_Tilt_Actual': round(final_right_tilt_clamped + np.random.uniform(-3, 3), 1),
             'X': coords['x'],
             'Y': coords['y'],
-            'Applied_Scaling_Factor': round(scaling_factor, 3)
+            'Applied_Offsets': {
+                'pan': pan_offset,
+                'tilt': tilt_offset,
+                'left_rpm': left_rpm_offset,
+                'right_rpm': right_rpm_offset
+            }
         }
     
     # ===== GENERATE COMPLETE DATASET =====
@@ -262,16 +254,16 @@ def generate_complete_corrected_swing_spin_dataset_with_offsets(
     complete_json_data = {
         "generation_metadata": {
             "generated_timestamp": generation_time,
-            "generator_version": "v2.0_offset_corrected",
+            "generator_version": "v2.1_fixed_offset_application",
             "total_combinations": total_combinations,
-            "reference_speed_for_offsets": "110 kmph"
+            "offset_application_method": "DIRECT - Applied AS-IS to all configurations"
         },
         "applied_offsets": {
             "pan_offset": pan_offset,
             "tilt_offset": tilt_offset,
             "left_rpm_offset": left_rpm_offset,
             "right_rpm_offset": right_rpm_offset,
-            "note": "Offsets are scaled proportionally across all speeds based on 110 kmph reference"
+            "note": "Offsets are applied AS-IS to ALL configurations without any scaling"
         },
         "safety_ranges": SAFETY_RANGES,
         "dataset_parameters": {
@@ -284,7 +276,7 @@ def generate_complete_corrected_swing_spin_dataset_with_offsets(
             "SWING: L-RPM > R-RPM for positive levels, L-RPM < R-RPM for negative levels",
             "SPIN: Left Tilt > Right Tilt for positive levels, Left Tilt < Right Tilt for negative levels", 
             "SPIN: 40 units difference per level (matches actual data)",
-            "OFFSETS: Applied with speed-based scaling (higher speeds get proportionally higher offsets)",
+            "OFFSETS: Applied DIRECTLY without any scaling - same offset value for all speeds/configs",
             "SAFETY: All values clamped to operational ranges",
             "FAILSAFE: Prevents equal tilt values for non-zero spin levels"
         ],
@@ -299,30 +291,30 @@ def create_bowling_machine_dataset_with_custom_offsets(
     tilt_offset=0, 
     left_rpm_offset=0, 
     right_rpm_offset=0,
-    output_filename='Bowling_Machine_Dataset_Custom_Offsets.json'
+    output_filename='Bowling_Machine_Dataset_Fixed_Offsets.json'
 ):
     """
     🎯 PRODUCTION FUNCTION: Generate bowling machine dataset with custom offsets
     
     Parameters:
-    - pan_offset: Offset for pan values (applied at 110 kmph, scaled for other speeds)
-    - tilt_offset: Offset for tilt values (applied at 110 kmph, scaled for other speeds)  
-    - left_rpm_offset: Offset for left RPM values (applied at 110 kmph, scaled for other speeds)
-    - right_rpm_offset: Offset for right RPM values (applied at 110 kmph, scaled for other speeds)
+    - pan_offset: Offset for pan values (applied AS-IS to all configurations)
+    - tilt_offset: Offset for tilt values (applied AS-IS to all configurations)
+    - left_rpm_offset: Offset for left RPM values (applied AS-IS to all configurations)
+    - right_rpm_offset: Offset for right RPM values (applied AS-IS to all configurations)
     - output_filename: Name of the output JSON file
     
-    Returns: Complete dataset with offsets applied and safety clamping
+    Returns: Complete dataset with offsets applied directly without scaling
     """
     
-    print(f"🎯 BOWLING MACHINE DATASET GENERATOR")
-    print("="*60)
-    print(f"📊 Custom Offsets (110 kmph reference):")
+    print(f"🎯 BOWLING MACHINE DATASET GENERATOR (FIXED OFFSET APPLICATION)")
+    print("="*70)
+    print(f"📊 Custom Offsets (Applied AS-IS to ALL configurations):")
     print(f"   Pan Offset: {pan_offset}")
     print(f"   Tilt Offset: {tilt_offset}")
     print(f"   Left RPM Offset: {left_rpm_offset}")
     print(f"   Right RPM Offset: {right_rpm_offset}")
     print(f"📁 Output File: {output_filename}")
-    print("="*60)
+    print("="*70)
     
     # Generate the dataset
     dataset = generate_complete_corrected_swing_spin_dataset_with_offsets(
@@ -378,9 +370,53 @@ def check_safety_compliance(dataset):
     return violations
 
 
+def query_bowling_machine(dataset, speed, swing_level, spin_level, position):
+    """
+    Query the bowling machine dataset for specific parameters
+    
+    Parameters:
+    - dataset: The generated bowling machine dataset
+    - speed: Ball speed in kmph
+    - swing_level: Swing level (-5 to 5)
+    - spin_level: Spin level (-5 to 5)  
+    - position: Ball position string
+    
+    Returns: Machine configuration values
+    """
+    try:
+        speed_key = f"{speed}_kmph"
+        swing_key = f"swing_level_{swing_level}"
+        spin_key = f"spin_level_{spin_level}"
+        
+        result = dataset['data'][speed_key]['swing_levels'][swing_key]['spin_levels'][spin_key]['positions'][position]
+        
+        return {
+            'success': True,
+            'parameters': {
+                'speed': speed,
+                'swing_level': swing_level,
+                'spin_level': spin_level,
+                'position': position
+            },
+            'machine_settings': result,
+            'applied_offsets': dataset['applied_offsets']
+        }
+    except KeyError as e:
+        return {
+            'success': False,
+            'error': f"Invalid parameters: {e}",
+            'parameters': {
+                'speed': speed,
+                'swing_level': swing_level,
+                'spin_level': spin_level,
+                'position': position
+            }
+        }
+
+
 # ===== EXAMPLE USAGE =====
 if __name__ == "__main__":
-    print("🎯 BOWLING MACHINE ALGORITHM WITH OFFSET CORRECTION")
+    print("🎯 BOWLING MACHINE ALGORITHM WITH FIXED OFFSET CORRECTION")
     print("="*70)
     
     # Example 1: Baseline dataset (no offsets)
@@ -396,10 +432,10 @@ if __name__ == "__main__":
     # Example 2: Dataset with real-world offsets
     print("\n📋 GENERATING OFFSET-CORRECTED DATASET...")
     corrected_dataset = create_bowling_machine_dataset_with_custom_offsets(
-        pan_offset=15,      # Example: Pan needs +15 adjustment at 110 kmph
-        tilt_offset=-8,     # Example: Tilt needs -8 adjustment at 110 kmph
-        left_rpm_offset=5,  # Example: Left RPM needs +5 adjustment at 110 kmph
-        right_rpm_offset=3, # Example: Right RPM needs +3 adjustment at 110 kmph
+        pan_offset=0,      # Pan needs +15 adjustment (applied to ALL configurations)
+        tilt_offset=-0,     # Tilt needs -8 adjustment (applied to ALL configurations)
+        left_rpm_offset=-50,  # Left RPM needs +5 adjustment (applied to ALL configurations)
+        right_rpm_offset=-50, # Right RPM needs +3 adjustment (applied to ALL configurations)
         output_filename='bowling_data.json'
     )
     
@@ -413,22 +449,42 @@ if __name__ == "__main__":
     else:
         print("✅ All values are within safety ranges!")
     
+    # Example query
+    print("\n🔍 EXAMPLE QUERY:")
+    query_result = query_bowling_machine(
+        dataset=corrected_dataset,
+        speed=110,
+        swing_level=2,
+        spin_level=-1,
+        position='centre - 0'
+    )
+    
+    if query_result['success']:
+        print("✅ Query successful!")
+        print(f"Parameters: {query_result['parameters']}")
+        print(f"Machine Settings: {query_result['machine_settings']}")
+    else:
+        print(f"❌ Query failed: {query_result['error']}")
+    
     print("\n🎉 ALGORITHM READY FOR PRODUCTION!")
     print("\n📋 USAGE INSTRUCTIONS:")
     print("="*30)
     print("""
-    1. Test at 110 kmph with baseline dataset
-    2. Measure actual vs expected results
-    3. Calculate offsets: offset = actual - expected
+    1. Test with baseline dataset (all offsets = 0)
+    2. Measure actual vs expected results at any speed
+    3. Calculate offsets: offset = expected - actual
     4. Run with your calculated offsets:
     
     dataset = create_bowling_machine_dataset_with_custom_offsets(
-        pan_offset=your_pan_offset,
-        tilt_offset=your_tilt_offset,
-        left_rpm_offset=your_left_rpm_offset,
-        right_rpm_offset=your_right_rpm_offset,
+        pan_offset=your_pan_offset,        # Applied AS-IS to ALL configs
+        tilt_offset=your_tilt_offset,      # Applied AS-IS to ALL configs  
+        left_rpm_offset=your_left_rpm_offset,  # Applied AS-IS to ALL configs
+        right_rpm_offset=your_right_rpm_offset, # Applied AS-IS to ALL configs
         output_filename='Production_Dataset.json'
     )
     
-    5. Deploy to bowling machine!
+    5. Query specific configurations:
+    result = query_bowling_machine(dataset, speed, swing, spin, position)
+    
+    6. Deploy to bowling machine!
     """)
