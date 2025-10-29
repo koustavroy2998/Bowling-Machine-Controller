@@ -12,12 +12,12 @@ class BowlingMachineController {
       maxAge: 3600000,
     };
 
-    // Accuracy zones
+    // Accuracy zones (slightly tightened)
     this.accuracyZones = {
       ULTRA_PRECISION: { yMin: 5, yMax: 15, tolerance: 12 },
-      HIGH_PRECISION: { yMin: 15, yMax: 35, tolerance: 18 },
-      MEDIUM_PRECISION: { yMin: 35, yMax: 60, tolerance: 25 },
-      STANDARD_PRECISION: { yMin: 60, yMax: 80, tolerance: 30 },
+      HIGH_PRECISION: { yMin: 15, yMax: 35, tolerance: 16 },
+      MEDIUM_PRECISION: { yMin: 35, yMax: 60, tolerance: 22 },
+      STANDARD_PRECISION: { yMin: 60, yMax: 80, tolerance: 20 },
     };
 
     // Speed-dependent RPM tolerance profile
@@ -36,6 +36,11 @@ class BowlingMachineController {
         150: { rpmTolerance: 35, interpolationWeight: 0.6, patternMultiplier: 1.5 },
         160: { rpmTolerance: 45, interpolationWeight: 0.5, patternMultiplier: 1.8 }
       }
+    };
+
+    // Safety limits for tilt composition
+    this.safety = {
+      leftRightTilt: { min: 400, max: 2700 },
     };
 
     // Caches
@@ -58,6 +63,12 @@ class BowlingMachineController {
 
   // Utility: round to 1 decimal (preserve subtle pan variance)
   round1(n) { return Math.round(n * 10) / 10; }
+
+  // Clamp helper for LR tilt
+  clampLRTilt(v) {
+    const r = this.safety.leftRightTilt;
+    return Math.max(r.min, Math.min(r.max, v));
+  }
 
   // Load JSON
   async loadJsonData() {
@@ -159,32 +170,28 @@ class BowlingMachineController {
     this.metrics.interpolations++;
   }
 
-  // Region tolerance
+  // Region tolerance (tightened at bottom)
   getRegionTolerance(y) {
-    for (const [, zone] of Object.entries(this.accuracyZones)) {
-      if (y >= zone.yMin && y <= zone.yMax) return zone.tolerance;
-    }
-    return 35;
+    if (y <= 15) return 12;
+    if (y <= 35) return 16;
+    if (y <= 60) return 22;
+    return 20;
   }
 
-  // Region multiplier
+  // Region multiplier (bias bottom references when Y is low vs high)
   calculateRegionMultiplier(targetY, point) {
-    let multiplier = 1.0;
-
+    let m = 1.0;
     if (targetY <= 30) {
-      if (point.name.includes("top")) multiplier = 1.5;
-      else if (point.name.includes("mid")) multiplier = 1.3;
+      if (point.name.includes("top")) m = 1.6;
+      else if (point.name.includes("mid")) m = 1.35;
+    } else if (targetY <= 60) {
+      if (point.name.includes("centre")) m = 1.45;
+      else if (point.name.includes("left") || point.name.includes("right")) m = 1.3;
+    } else {
+      if (point.name.includes("bottom")) m = 1.9;
+      else if (point.name.includes("centre")) m = 1.4;
     }
-    if (targetY > 30 && targetY <= 60) {
-      if (point.name === "centre") multiplier = 1.4;
-      else if (point.name.includes("left") || point.name.includes("right")) multiplier = 1.25;
-    }
-    if (targetY > 60) {
-      if (point.name === "bottom") multiplier = 1.6;
-      else if (point.name === "centre") multiplier = 1.3;
-    }
-
-    return multiplier;
+    return m;
   }
 
   // Confidence
@@ -212,6 +219,44 @@ class BowlingMachineController {
     return "STANDARD_PRECISION_BOTTOM";
   }
 
+  // Piecewise-linear mid tilt anchor from Y
+  midTiltAnchor(y) {
+    const pts = [
+      { y: 5,  m: 1500 }, // top
+      { y: 25, m: 1400 }, // top-mid
+      { y: 40, m: 1200 }, // centre/mid
+      { y: 80, m: 800  }, // bottom
+    ];
+    if (y <= pts[0].y) return pts[0].m;
+    if (y >= pts[pts.length - 1].y) return pts[pts.length - 1].m;
+    for (let i = 0; i < pts.length - 1; i++) {
+      const a = pts[i], b = pts[i + 1];
+      if (y >= a.y && y <= b.y) {
+        const t = (y - a.y) / (b.y - a.y);
+        return a.m + t * (b.m - a.m);
+      }
+    }
+    return 1200;
+  }
+
+  // Anisotropic distance: heavier Y penalty at bottom
+  anisotropicDistance(ax, ay, bx, by) {
+    const yAvg = (ay + by) / 2;
+    const yScale = yAvg >= 60 ? 1.5 : (yAvg >= 35 ? 1.2 : 1.0);
+    const dx = ax - bx;
+    const dy = (ay - by) * yScale;
+    return Math.hypot(dx, dy);
+  }
+
+  // L/R from mid using ±20 per spin level; swing does not split L/R
+  lrFromMid(mid, spinLevel) {
+    const step = 20;
+    const delta = step * Math.abs(spinLevel);
+    if (spinLevel > 0) return { left: mid + delta, right: mid - delta };
+    if (spinLevel < 0) return { left: mid - delta, right: mid + delta };
+    return { left: mid, right: mid };
+  }
+
   // Interpolation
   calculateInterpolationFromJson(speed, targetX, targetY, swingLevel, spinLevel) {
     const cacheKey = `${speed}-${targetX}-${targetY}-${swingLevel}-${spinLevel}`;
@@ -231,9 +276,8 @@ class BowlingMachineController {
 
     const relevantPoints = Object.entries(positions).map(
       ([positionName, positionData]) => {
-        const distance = Math.sqrt(
-          Math.pow(positionData.X - targetX, 2) +
-          Math.pow(positionData.Y - targetY, 2)
+        const distance = this.anisotropicDistance(
+          positionData.X, positionData.Y, targetX, targetY
         );
 
         let regionMultiplier = this.calculateRegionMultiplier(targetY, { name: positionName });
@@ -254,32 +298,42 @@ class BowlingMachineController {
     const bestPoints = relevantPoints.sort((a, b) => a.distance - b.distance).slice(0, pointCount);
 
     let totalWeight = 0;
-    const weightedSums = {
+    const sums = {
       pan: 0, panActual: 0, tilt: 0, tiltActual: 0,
-      leftTilt: 0, leftTiltActual: 0, rightTilt: 0, rightTiltActual: 0,
+      midLR: 0, midLRActual: 0,
       leftRPM: 0, rightRPM: 0,
     };
 
     bestPoints.forEach((point) => {
-      const weight = 1.0 / (point.distance + 0.1);
-      totalWeight += weight;
+      const w = 1.0 / (point.distance + 0.1);
+      totalWeight += w;
 
-      weightedSums.pan += point.data.Pan * weight;
-      weightedSums.panActual += point.data.Pan_actual * weight;
-      weightedSums.tilt += point.data.Tilt * weight;
-      weightedSums.tiltActual += point.data.Tilt_actual * weight;
-      weightedSums.leftTilt += point.data.Left_Tilt * weight;
-      weightedSums.leftTiltActual += point.data.Left_Tilt_Actual * weight;
-      weightedSums.rightTilt += point.data.Right_Tilt * weight;
-      weightedSums.rightTiltActual += point.data.Right_Tilt_Actual * weight;
-      weightedSums.leftRPM += point.data.L_RPM * weight;
-      weightedSums.rightRPM += point.data.R_RPM * weight;
+      const mid = (point.data.Left_Tilt + point.data.Right_Tilt) / 2;
+      const midAct = (point.data.Left_Tilt_Actual + point.data.Right_Tilt_Actual) / 2;
+
+      sums.pan += point.data.Pan * w;
+      sums.panActual += point.data.Pan_actual * w;
+      sums.tilt += point.data.Tilt * w;
+      sums.tiltActual += point.data.Tilt_actual * w;
+      sums.midLR += mid * w;
+      sums.midLRActual += midAct * w;
+      sums.leftRPM += point.data.L_RPM * w;
+      sums.rightRPM += point.data.R_RPM * w;
     });
 
-    const baseLeftRPM = weightedSums.leftRPM / totalWeight;
-    const baseRightRPM = weightedSums.rightRPM / totalWeight;
+    const weightedMid = sums.midLR / totalWeight;
+    const anchoredMid = this.midTiltAnchor(targetY);
+    const downBias = targetY >= 60 ? 0.7 : (targetY >= 35 ? 0.4 : 0.2);
+    const finalMid = (1 - downBias) * weightedMid + downBias * anchoredMid;
 
-    // Zero swing/spin -> preserve dataset RPMs
+    // Compose LR from anchored mid with spin-only separation
+    let { left: calcLeft, right: calcRight } = this.lrFromMid(finalMid, spinLevel);
+    calcLeft = this.clampLRTilt(calcLeft);
+    calcRight = this.clampLRTilt(calcRight);
+
+    const baseLeftRPM = sums.leftRPM / totalWeight;
+    const baseRightRPM = sums.rightRPM / totalWeight;
+
     const zeroSS = swingLevel === 0 && spinLevel === 0;
     const adjustedLeftRPM = zeroSS
       ? Math.round(baseLeftRPM)
@@ -289,14 +343,17 @@ class BowlingMachineController {
       : this.applyRealisticSpeedRpmPattern(baseRightRPM, speed, speedProfile, targetX, targetY);
 
     const result = {
-      pan: this.round1(weightedSums.pan / totalWeight),
-      panActual: this.round1(weightedSums.panActual / totalWeight),
-      tilt: Math.round(weightedSums.tilt / totalWeight),
-      tiltActual: Math.round(weightedSums.tiltActual / totalWeight),
-      leftTilt: Math.round(weightedSums.leftTilt / totalWeight),
-      leftTiltActual: Math.round(weightedSums.leftTiltActual / totalWeight),
-      rightTilt: Math.round(weightedSums.rightTilt / totalWeight),
-      rightTiltActual: Math.round(weightedSums.rightTiltActual / totalWeight),
+      pan: this.round1(sums.pan / totalWeight),
+      panActual: this.round1(sums.panActual / totalWeight),
+      tilt: Math.round(sums.tilt / totalWeight),
+      tiltActual: Math.round(sums.tiltActual / totalWeight),
+
+      // Overwrite with calibrated L/R
+      leftTilt: Math.round(calcLeft),
+      leftTiltActual: Math.round((sums.midLRActual / totalWeight) + (calcLeft - finalMid)),
+      rightTilt: Math.round(calcRight),
+      rightTiltActual: Math.round((sums.midLRActual / totalWeight) + (calcRight - finalMid)),
+
       leftRPM: adjustedLeftRPM,
       rightRPM: adjustedRightRPM,
       usedPoints: bestPoints.length,
@@ -446,6 +503,15 @@ class BowlingMachineController {
         ? Math.round(closestPosition.data.R_RPM)
         : this.applyRealisticSpeedRpmPattern(closestPosition.data.R_RPM, speed, speedProfile, x, y);
 
+      // Compose calibrated L/R even for exact to ensure swing-only L=R if data drifts
+      const anchoredMid = this.midTiltAnchor(y);
+      const swingOnly = spinLevel === 0;
+      let leftTilt = Math.round(closestPosition.data.Left_Tilt);
+      let rightTilt = Math.round(closestPosition.data.Right_Tilt);
+      if (swingOnly) {
+        leftTilt = rightTilt = Math.round(anchoredMid);
+      }
+
       return {
         speed, swingLevel, spinLevel,
         coordinates: { x, y },
@@ -454,10 +520,10 @@ class BowlingMachineController {
           panActual: this.round1(closestPosition.data.Pan_actual),
           tilt: Math.round(closestPosition.data.Tilt),
           tiltActual: Math.round(closestPosition.data.Tilt_actual),
-          leftTilt: Math.round(closestPosition.data.Left_Tilt),
-          leftTiltActual: Math.round(closestPosition.data.Left_Tilt_Actual),
-          rightTilt: Math.round(closestPosition.data.Right_Tilt),
-          rightTiltActual: Math.round(closestPosition.data.Right_Tilt_Actual),
+          leftTilt,
+          leftTiltActual: leftTilt,
+          rightTilt,
+          rightTiltActual: rightTilt,
           leftRPM: adjustedLeftRPM,
           rightRPM: adjustedRightRPM,
         },

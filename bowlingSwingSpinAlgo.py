@@ -2,7 +2,6 @@ import json
 import numpy as np
 from datetime import datetime
 
-
 def generate_minimal_bowling_dataset_with_rpm_map(
     speed_rpm_map,
     pan_offset=0,
@@ -10,13 +9,14 @@ def generate_minimal_bowling_dataset_with_rpm_map(
     output_filename="bowling_data.json"
 ):
     """
-    FIXES:
-    1. Pan variance scales aggressively for high speed + high swing (30-40 units/level)
-    2. RPM symmetry preserved - average of L_RPM and R_RPM always equals base RPM
-    3. Left/Right tilt boost for high speeds + swing level ≥3
+    FIXES (v5.1):
+    1. Remove swing-induced L/R tilt asymmetry (swing affects pan only)
+    2. Spin separation ±20 per level around baseline mid tilt
+    3. RPM symmetry preserved - average of L_RPM and R_RPM equals base RPM
+    4. Preserve progressive pan swing scaling and safety clamps
     """
 
-    print("🎯 GENERATING BOWLING DATASET (FIXED HIGH-SPEED SWING LOGIC)")
+    print("🎯 GENERATING BOWLING DATASET (v5.1 L/R tilt corrected)")
     print("=" * 60)
     print(f"   Pan Offset: {pan_offset}")
     print(f"   Tilt Offset: {tilt_offset}")
@@ -74,7 +74,8 @@ def generate_minimal_bowling_dataset_with_rpm_map(
         'bottom - 4': -400, 'top-mid-centre-5': +200, 'top-mid-left-6': +200, 'top-mid-right-7': +200
     }
 
-    enhanced_tilt_per_level = 50
+    # Recalibrated: 20 per spin level
+    enhanced_tilt_per_level = 20
 
     def clamp(v, key):
         r = SAFETY_RANGES[key]
@@ -86,13 +87,10 @@ def generate_minimal_bowling_dataset_with_rpm_map(
         base_rpm = float(speed_rpm_map[speed])
 
         # === PAN LOGIC with PROGRESSIVE SWING BOOST (ALL SPEEDS) ===
-        # Base: 25/level, scales to 30-40 for |swing|≥3
         swing_pan_base = 25
         if abs(swing_level) >= 3:
-            # Progressive boost: level 3→+5, level 4→+10, level 5→+15
-            extra = (abs(swing_level) - 2) * 5
+            extra = (abs(swing_level) - 2) * 5  # level 3→+5, 4→+10, 5→+15
             swing_pan_base += extra  # reaches 40 at level 5
-
         swing_pan_effect = swing_pan_base * swing_level
 
         base_pan = c['Pan'] + pan_delta[position]
@@ -101,18 +99,14 @@ def generate_minimal_bowling_dataset_with_rpm_map(
         base_right_tilt = c['Right_Tilt'] + lr_tilt_delta[position]
 
         # === RPM LOGIC - PRESERVE AVERAGE ===
-        # Symmetric split ensures (L+R)/2 = base_rpm
         if swing_level == 0:
             left_rpm = right_rpm = base_rpm
         else:
-            # Delta per level: 20-30, deterministic per speed/position
             key = f"{speed}:{position}"
             seed = abs(hash(key)) % (2**32)
             rng = np.random.default_rng(seed)
             delta_per_level = int(rng.integers(20, 31))
-            
             total_delta = delta_per_level * abs(swing_level)
-            
             if swing_level > 0:
                 left_rpm = base_rpm + total_delta
                 right_rpm = base_rpm - total_delta
@@ -120,30 +114,15 @@ def generate_minimal_bowling_dataset_with_rpm_map(
                 left_rpm = base_rpm - total_delta
                 right_rpm = base_rpm + total_delta
 
-        # === SPIN EFFECTS ===
+        # === SPIN EFFECTS (recalibrated) ===
         spin_pan_effect = spin_level * 10 if spin_level != 0 else 0
         spin_tilt_effect = spin_level * 5 if spin_level != 0 else 0
-        spin_left_tilt_effect = spin_level * enhanced_tilt_per_level
-        spin_right_tilt_effect = -spin_level * enhanced_tilt_per_level
+        spin_left_tilt_effect = spin_level * enhanced_tilt_per_level      # ±20/level
+        spin_right_tilt_effect = -spin_level * enhanced_tilt_per_level    # ∓20/level
 
-        # === LEFT/RIGHT TILT BOOST for HIGH-SPEED + HIGH-SWING ===
-        # Apply +30-40 units ONLY when there's swing (not spin-only)
-        # For spin=0: left_tilt = right_tilt (symmetric)
-        swing_tilt_boost = 0
-        if speed >= 120 and abs(swing_level) >= 3:
-            # Progressive: level 3→+30, level 4→+35, level 5→+40
-            swing_tilt_boost = 30 + (abs(swing_level) - 3) * 5
-
-        # Apply boost asymmetrically based on swing direction
-        if swing_level > 0:
-            swing_left_tilt_boost = +swing_tilt_boost
-            swing_right_tilt_boost = -swing_tilt_boost
-        elif swing_level < 0:
-            swing_left_tilt_boost = -swing_tilt_boost
-            swing_right_tilt_boost = +swing_tilt_boost
-        else:
-            # NO SWING: left and right tilt must be EQUAL (only spin affects them)
-            swing_left_tilt_boost = swing_right_tilt_boost = 0
+        # === REMOVE swing-induced L/R tilt asymmetry ===
+        swing_left_tilt_boost = 0
+        swing_right_tilt_boost = 0
 
         # === FINAL VALUES ===
         final_pan = base_pan + swing_pan_effect + spin_pan_effect + pan_offset
@@ -158,9 +137,9 @@ def generate_minimal_bowling_dataset_with_rpm_map(
         final_left_rpm = clamp(left_rpm, 'rpm')
         final_right_rpm = clamp(right_rpm, 'rpm')
 
-        # Ensure spin separation
+        # Ensure spin separation visibility in data rows
         if spin_level != 0 and abs(final_left_tilt - final_right_tilt) < 20:
-            adjust = 30
+            adjust = 20
             if spin_level > 0:
                 final_left_tilt = clamp(final_left_tilt + adjust, 'left_right_tilt')
                 final_right_tilt = clamp(final_right_tilt - adjust, 'left_right_tilt')
@@ -211,13 +190,13 @@ def generate_minimal_bowling_dataset_with_rpm_map(
     minimal_json_data = {
         'generation_metadata': {
             'generated_timestamp': datetime.now().strftime('%Y-%m-%d %H:%M:%S'),
-            'generator_version': 'v5.0-fixed-high-speed-swing',
+            'generator_version': 'v5.1-lr-tilt-corrected',
             'total_combinations': total_combinations,
             'fixes_applied': [
-                'Pan variance 30-40 units/level for |swing|≥3 (ALL SPEEDS)',
+                'Remove swing-induced L/R tilt asymmetry',
+                'Spin separation ±20 per level for L/R tilt',
                 'RPM symmetry preserved: (L_RPM + R_RPM)/2 = base_RPM',
-                'L/R tilt +30-40 boost for speed≥120 & |swing|≥3',
-                'Zero swing ensures left_tilt = right_tilt (only spin differentiates)'
+                'Pan swing scaling up to 40/level for |swing|≥3'
             ]
         },
         'applied_settings': {
@@ -243,20 +222,19 @@ def generate_minimal_bowling_dataset_with_rpm_map(
 
     return minimal_json_data
 
-
 if __name__ == "__main__":
     machine_rpm_map = {
         60: 205.0, 70: 240.0, 80: 270.0, 90: 300.0, 100: 315.0,
         110: 350.0, 120: 380.0, 130: 420.0, 140: 480.0, 150: 520.0, 160: 550.0
     }
-    
+
     result = generate_minimal_bowling_dataset_with_rpm_map(
         speed_rpm_map=machine_rpm_map,
         pan_offset=0,
         tilt_offset=0,
         output_filename="bowling_data.json"
     )
-    
+
     # Verification test
     print("\n" + "="*60)
     print("VERIFICATION: Speed 110, Swing +3, Spin 0, Centre")
