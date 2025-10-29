@@ -60,7 +60,7 @@ def generate_minimal_bowling_dataset_with_rpm_map(
         120: {'Pan': 2900.0, 'Tilt': 3120.0, 'Left_Tilt': 1100.0, 'Right_Tilt': 1100.0},
         130: {'Pan': 2900.0, 'Tilt': 3120.0, 'Left_Tilt': 1100.0, 'Right_Tilt': 1100.0},
         140: {'Pan': 2900.0, 'Tilt': 3120.0, 'Left_Tilt': 1100.0, 'Right_Tilt': 1100.0},
-        150: {'Pan': 2900.0, 'Tilt': 3200.0, 'Left_Tilt': 1100.0, 'Right_Tilt': 1100.0},
+        150: {'Pan': 2900.0, 'Tilt': 3120.0, 'Left_Tilt': 1100.0, 'Right_Tilt': 1100.0},
         160: {'Pan': 2900.0, 'Tilt': 3200.0, 'Left_Tilt': 1100.0, 'Right_Tilt': 1100.0},
     }
 
@@ -247,7 +247,7 @@ def generate_minimal_bowling_dataset_with_rpm_map(
 if __name__ == "__main__":
     machine_rpm_map = {
         60: 205.0, 70: 240.0, 80: 270.0, 90: 300.0, 100: 315.0,
-        110: 350.0, 120: 380.0, 130: 420.0, 140: 545.0, 150: 550.0, 160: 550.0
+        110: 350.0, 120: 380.0, 130: 420.0, 140: 420.0, 150: 520.0, 160: 550.0
     }
     
     result = generate_minimal_bowling_dataset_with_rpm_map(
