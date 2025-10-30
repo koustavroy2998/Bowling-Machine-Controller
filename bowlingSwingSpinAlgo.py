@@ -106,7 +106,7 @@ def generate_minimal_bowling_dataset_with_rpm_map(
         },
         'G2_80': {
             'speeds': [80],
-            'swing_pan_base': 30,
+            'swing_pan_base': 25,
             'swing_pan_threshold': 3,
             'swing_pan_extra_per_level': 5,
             'tilt_additive_bias': -350,
@@ -115,9 +115,9 @@ def generate_minimal_bowling_dataset_with_rpm_map(
         },
         'G3_90_100': {
             'speeds': [90, 100],
-            'swing_pan_base': 35,
+            'swing_pan_base': 30,
             'swing_pan_threshold': 3,
-            'swing_pan_extra_per_level': 5,
+            'swing_pan_extra_per_level': 0,
             'tilt_additive_bias': 0,
             'tilt_spin_multiplier': 1.0,
             'lr_tilt_additive_bias': 0
