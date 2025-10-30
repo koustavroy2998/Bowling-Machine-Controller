@@ -9,7 +9,7 @@ class BowlingMachineController {
       maxSize: 5000,
       cleanupThreshold: 4500,
       cleanupBatchSize: 1000,
-      maxAge: 3600000,
+      maxAge: 3600000, // 1h
     };
 
     // Accuracy zones
@@ -45,20 +45,21 @@ class BowlingMachineController {
       tilt: { min: 500, max: 3900 },
     };
 
-    // Speed groups with shared knobs (defaults = neutral; will import from JSON)
+    // Speed groups with PRESET CONFIGS (matching generator)
+    // Current grouping: 60–70, 80, 90–100, 110–120, 130–140, 150–160
     this.speedGroups = [
       { name: 'G1_60_70',   speeds: new Set([60, 70]),
-        params: { swingPanBase: 0, swingPanThreshold: 3, swingPanExtraPerLevel: 0, tiltBias: 0, tiltSpinMultiplier: 1.0, lrTiltBias: 0 } },
+        params: { swingPanBase: 25, swingPanThreshold: 3, swingPanExtraPerLevel: 5, tiltBias: -500, tiltSpinMultiplier: 1.15, lrTiltBias: 0 } },
       { name: 'G2_80',      speeds: new Set([80]),
-        params: { swingPanBase: 0, swingPanThreshold: 3, swingPanExtraPerLevel: 0, tiltBias: 0, tiltSpinMultiplier: 1.0, lrTiltBias: 0 } },
+        params: { swingPanBase: 25, swingPanThreshold: 3, swingPanExtraPerLevel: 5, tiltBias: -350, tiltSpinMultiplier: 1.08, lrTiltBias: 0 } },
       { name: 'G3_90_100',  speeds: new Set([90, 100]),
-        params: { swingPanBase: 0, swingPanThreshold: 3, swingPanExtraPerLevel: 0, tiltBias: 0, tiltSpinMultiplier: 1.0, lrTiltBias: 0 } },
+        params: { swingPanBase: 25, swingPanThreshold: 3, swingPanExtraPerLevel: 5, tiltBias: 0, tiltSpinMultiplier: 1.0, lrTiltBias: 0 } },
       { name: 'G4_110_120', speeds: new Set([110, 120]),
-        params: { swingPanBase: 0, swingPanThreshold: 3, swingPanExtraPerLevel: 0, tiltBias: 0, tiltSpinMultiplier: 1.0, lrTiltBias: 0 } },
+        params: { swingPanBase: 13, swingPanThreshold: 3, swingPanExtraPerLevel: 5, tiltBias: 50, tiltSpinMultiplier: 1.0, lrTiltBias: -120 } },
       { name: 'G5_130_140', speeds: new Set([130, 140]),
-        params: { swingPanBase: 0, swingPanThreshold: 3, swingPanExtraPerLevel: 0, tiltBias: 0, tiltSpinMultiplier: 1.0, lrTiltBias: 0 } },
+        params: { swingPanBase: 20, swingPanThreshold: 3, swingPanExtraPerLevel: 5, tiltBias: 50, tiltSpinMultiplier: 1.0, lrTiltBias: -160 } },
       { name: 'G6_150_160', speeds: new Set([150, 160]),
-        params: { swingPanBase: 0, swingPanThreshold: 3, swingPanExtraPerLevel: 0, tiltBias: 0, tiltSpinMultiplier: 1.0, lrTiltBias: 0 } },
+        params: { swingPanBase: 15, swingPanThreshold: 3, swingPanExtraPerLevel: 5, tiltBias: 50, tiltSpinMultiplier: 1.0, lrTiltBias: -200 } },
     ];
 
     // Caches
@@ -73,13 +74,15 @@ class BowlingMachineController {
       exactMatches: 0,
       cacheCleanups: 0,
       expiredEntries: 0,
-      totalMemoryUsage: 0,
+      totalMemoryUsage: 0, // approx bytes
+      lastCleanupRemoved: 0,
     };
 
+    // Kick off JSON load
     this.loadJsonData();
   }
 
-  // Utility
+  // ============== Utilities ==============
   round1(n) { return Math.round(n * 10) / 10; }
 
   clampRange(key, v) {
@@ -92,10 +95,49 @@ class BowlingMachineController {
     return Math.max(r.min, Math.min(r.max, v));
   }
 
-  // Speed-group helpers
+  // Small 3x3 linear solver (Cramer) for plane fit
+  det3(a,b,c,d,e,f,g,h,i){ return a*(e*i - f*h) - b*(d*i - f*g) + c*(d*h - e*g); }
+
+  solvePlaneWeighted(points) {
+    // points: [{x,y,z,w}]
+    let Sxx=0,Sxy=0,Syy=0,Sx=0,Sy=0,Sw=0,Szx=0,Szy=0,Sz=0;
+    for (const p of points) {
+      const {x,y,z,w} = p;
+      Sxx += w*x*x;
+      Sxy += w*x*y;
+      Syy += w*y*y;
+      Sx  += w*x;
+      Sy  += w*y;
+      Sw  += w;
+      Szx += w*x*z;
+      Szy += w*y*z;
+      Sz  += w*z;
+    }
+    const A11=Sxx, A12=Sxy, A13=Sx;
+    const A21=Sxy, A22=Syy, A23=Sy;
+    const A31=Sx,  A32=Sy,  A33=Sw;
+    const B1=Szx,  B2=Szy,  B3=Sz;
+
+    const detA = this.det3(A11,A12,A13,A21,A22,A23,A31,A32,A33);
+    if (Math.abs(detA) < 1e-6) return { ok:false };
+
+    const detAx = this.det3(B1,A12,A13,B2,A22,A23,B3,A32,A33);
+    const detAy = this.det3(A11,B1,A13,A21,B2,A23,A31,B3,A33);
+    const detAc = this.det3(A11,A12,B1,A21,A22,B2,A31,A32,B3);
+    const a = detAx/detA, b = detAy/detA, c = detAc/detA;
+    return { ok:true, a,b,c };
+  }
+
+  predictPlane(points, x, y) {
+    const s = this.solvePlaneWeighted(points);
+    if (!s.ok) return { ok:false, z:null };
+    return { ok:true, z: s.a*x + s.b*y + s.c };
+  }
+
+  // ============== Speed-group helpers ==============
   getGroupParams(speed) {
     for (const g of this.speedGroups) if (g.speeds.has(speed)) return g.params;
-    return { swingPanBase: 0, swingPanThreshold: 3, swingPanExtraPerLevel: 0, tiltBias: 0, tiltSpinMultiplier: 1.0, lrTiltBias: 0 };
+    return { swingPanBase: 25, swingPanThreshold: 3, swingPanExtraPerLevel: 5, tiltBias: 0, tiltSpinMultiplier: 1.0, lrTiltBias: 0 };
   }
 
   setGroupParams(groupName, newParams) {
@@ -103,6 +145,21 @@ class BowlingMachineController {
     if (!g) return false;
     g.params = { ...g.params, ...newParams };
     return true;
+  }
+
+  setGroupParamsBySpeed(speed, newParams) {
+    const g = this.speedGroups.find(x => x.speeds.has(speed));
+    if (!g) return false;
+    g.params = { ...g.params, ...newParams };
+    return true;
+  }
+
+  getSpeedGroupsSnapshot() {
+    return this.speedGroups.map(g => ({
+      name: g.name,
+      speeds: Array.from(g.speeds),
+      params: { ...g.params },
+    }));
   }
 
   // Import generator speed-group params (maps JSON -> controller fields)
@@ -134,6 +191,7 @@ class BowlingMachineController {
     }
   }
 
+  // ============== Overlays ==============
   applyPanSwingOverlay(pan, swingLevel, p) {
     // ΔPan_swing = s * (b + max(0, |s|-T)*E)
     const a = Math.abs(swingLevel);
@@ -157,7 +215,7 @@ class BowlingMachineController {
     };
   }
 
-  // Load JSON
+  // ============== JSON I/O ==============
   async loadJsonData() {
     if (this.loadingPromise) return this.loadingPromise;
 
@@ -169,7 +227,7 @@ class BowlingMachineController {
         // Import generator speed-group params for overlays
         this.importSpeedGroupsFromJson(this.jsonData.generation_metadata);
         this.isDataLoaded = true;
-        console.log("JSON data loaded successfully:", this.jsonData.generation_metadata, this.speedGroups);
+        console.log("JSON data loaded successfully:", this.jsonData.generation_metadata, this.getSpeedGroupsSnapshot());
         resolve(this.jsonData);
       } catch (error) {
         console.error("Error loading JSON data:", error);
@@ -186,63 +244,19 @@ class BowlingMachineController {
     return await this.loadJsonData();
   }
 
-  getSpeedRpmProfile(speed) {
-    const profile = this.speedRpmProfile.toleranceProfile[speed];
-    if (profile) return profile;
-
-    const referenceSpeed = this.speedRpmProfile.referenceSpeed;
-    const distanceFromReference = Math.abs(speed - referenceSpeed);
-
-    const rpmTolerance = 5 + Math.pow(distanceFromReference / 8, 1.8);
-    const interpolationWeight = Math.max(0.3, 1.0 - (distanceFromReference / 80));
-    const patternMultiplier = 1.0 + (distanceFromReference / 50);
-
-    return {
-      rpmTolerance: Math.min(50, rpmTolerance),
-      interpolationWeight,
-      patternMultiplier
-    };
-  }
-
-  // Cache management
-  manageCacheSize() {
-    const now = Date.now();
-    let removedCount = 0;
-
-    for (const [key, timestamp] of this.cacheTimestamps.entries()) {
-      if (now - timestamp > this.cacheConfig.maxAge) {
-        this.interpolationCache.delete(key);
-        this.cacheTimestamps.delete(key);
-        this.cacheAccessCount.delete(key);
-        removedCount++;
-        this.metrics.expiredEntries++;
-      }
-    }
-
-    if (this.interpolationCache.size >= this.cacheConfig.cleanupThreshold) {
-      const sortedByUsage = Array.from(this.cacheAccessCount.entries())
-        .sort((a, b) => a[1] - b[1])
-        .slice(0, this.cacheConfig.cleanupBatchSize);
-
-      sortedByUsage.forEach(([key]) => {
-        this.interpolationCache.delete(key);
-        this.cacheTimestamps.delete(key);
-        this.cacheAccessCount.delete(key);
-        removedCount++;
-      });
-
-      this.metrics.cacheCleanups++;
-    }
-
-    this.metrics.totalMemoryUsage = this.interpolationCache.size * 200;
-    return removedCount;
-  }
-
+  // ============== Region/tolerance helpers ==============
   getRegionTolerance(y) {
     if (y <= 15) return 12;
     if (y <= 35) return 16;
     if (y <= 60) return 22;
     return 20;
+  }
+
+  getAnchoredWeight(y) {
+    if (y <= 25) return 0.6;   // stronger top anchoring
+    if (y <= 35) return 0.45;
+    if (y <= 60) return 0.25;
+    return 0.1;
   }
 
   calculateRegionMultiplier(targetY, point) {
@@ -321,7 +335,7 @@ class BowlingMachineController {
     return { left: mid, right: mid };
   }
 
-  // Interpolation
+  // ============== Interpolation core (reworked) ==============
   calculateInterpolationFromJson(speed, targetX, targetY, swingLevel, spinLevel) {
     const cacheKey = `${speed}-${targetX}-${targetY}-${swingLevel}-${spinLevel}`;
 
@@ -338,22 +352,25 @@ class BowlingMachineController {
 
     const speedProfile = this.getSpeedRpmProfile(speed);
 
+    // Collect relevant points with weights
     const relevantPoints = Object.entries(positions).map(
       ([positionName, positionData]) => {
         const distance = this.anisotropicDistance(
           positionData.X, positionData.Y, targetX, targetY
         );
-
         let regionMultiplier = this.calculateRegionMultiplier(targetY, { name: positionName });
         let proximityBonus = distance < tolerance ? 1.2 : 1.0;
         regionMultiplier *= speedProfile.patternMultiplier;
 
+        const invDist = 1.0 / (distance + 0.1);
+        const w = (regionMultiplier * proximityBonus) * invDist;
+
         return {
           name: positionName,
           distance,
-          weight: (regionMultiplier * proximityBonus) / (distance + 0.5),
-          isRelevant: distance <= tolerance * 2.0,
           data: positionData,
+          w,
+          w2: w * invDist, // slightly sharper decay for plane fit
         };
       }
     );
@@ -361,44 +378,62 @@ class BowlingMachineController {
     const pointCount = Math.min(6, relevantPoints.length);
     const bestPoints = relevantPoints.sort((a, b) => a.distance - b.distance).slice(0, pointCount);
 
-    let totalWeight = 0;
-    const sums = {
-      pan: 0, panActual: 0, tilt: 0, tiltActual: 0,
-      midLR: 0, midLRActual: 0,
-      leftRPM: 0, rightRPM: 0,
+    // Prepare fields for plane fits
+    const mkPts = (field) =>
+      bestPoints.map(p => ({ x: p.data.X, y: p.data.Y, z: p.data[field], w: p.w2 }));
+
+    const mkMidPts = () =>
+      bestPoints.map(p => {
+        const mid = (p.data.Left_Tilt + p.data.Right_Tilt) / 2;
+        return { x: p.data.X, y: p.data.Y, z: mid, w: p.w2 };
+      });
+
+    // Fit planes
+    const panFit = this.predictPlane(mkPts('Pan'), targetX, targetY);
+    const tiltFit = this.predictPlane(mkPts('Tilt'), targetX, targetY);
+    const midFit  = this.predictPlane(mkMidPts(), targetX, targetY);
+
+    // Fallback to weighted average if fit fails
+    const safeAvg = (arr) => {
+      let tw=0, s=0;
+      for (const p of bestPoints) { tw += p.w; s += p.data[arr]*p.w; }
+      return s / Math.max(1e-6, tw);
     };
 
-    bestPoints.forEach((point) => {
-      const w = 1.0 / (point.distance + 0.1);
-      totalWeight += w;
+    let panBase  = panFit.ok  ? panFit.z  : safeAvg('Pan');
+    let tiltBase = tiltFit.ok ? tiltFit.z : safeAvg('Tilt');
 
-      const mid = (point.data.Left_Tilt + point.data.Right_Tilt) / 2;
-      const midAct = (point.data.Left_Tilt_Actual + point.data.Right_Tilt_Actual) / 2;
-
-      sums.pan += point.data.Pan * w;
-      sums.panActual += point.data.Pan_actual * w;
-      sums.tilt += point.data.Tilt * w;
-      sums.tiltActual += point.data.Tilt_actual * w;
-      sums.midLR += mid * w;
-      sums.midLRActual += midAct * w;
-      sums.leftRPM += point.data.L_RPM * w;
-      sums.rightRPM += point.data.R_RPM * w;
-    });
-
-    const weightedMid = sums.midLR / totalWeight;
+    // Mid tilt anchored: blend with anchor and never below anchor in top region
     const anchoredMid = this.midTiltAnchor(targetY);
-    const downBias = targetY >= 60 ? 0.7 : (targetY >= 35 ? 0.4 : 0.2);
-    const finalMid = (1 - downBias) * weightedMid + downBias * anchoredMid;
+    const anchoredWeight = this.getAnchoredWeight(targetY);
+    const midBaseRaw = midFit.ok ? midFit.z : (() => {
+      // weighted average of mid if plane failed
+      let tw=0, s=0;
+      for (const p of bestPoints) {
+        const mid = (p.data.Left_Tilt + p.data.Right_Tilt) / 2;
+        tw += p.w; s += mid * p.w;
+      }
+      return s / Math.max(1e-6, tw);
+    })();
 
-    // Compose LR from anchored mid with spin-only separation
+    let finalMid = (1 - anchoredWeight) * midBaseRaw + anchoredWeight * anchoredMid;
+    // Guarantee: near top-mid cannot have less tilt than anchor
+    if (targetY <= 35) finalMid = Math.max(finalMid, anchoredMid);
+
+    // Compose LR from anchored mid with spin-only separation, then apply LR bias
     let { left: calcLeft, right: calcRight } = this.lrFromMid(finalMid, spinLevel);
-
-    // Apply LR bias equally to both and clamp
     const p = this.getGroupParams(speed);
     ({ left: calcLeft, right: calcRight } = this.applyLRTiltOverlay(calcLeft, calcRight, p));
 
-    const baseLeftRPM = sums.leftRPM / totalWeight;
-    const baseRightRPM = sums.rightRPM / totalWeight;
+    // RPMs: reuse existing logic
+    const baseLeftRPM = (() => {
+      let tw=0, s=0; for (const pt of bestPoints){ tw += pt.w; s += pt.data.L_RPM * pt.w; }
+      return s / Math.max(1e-6, tw);
+    })();
+    const baseRightRPM = (() => {
+      let tw=0, s=0; for (const pt of bestPoints){ tw += pt.w; s += pt.data.R_RPM * pt.w; }
+      return s / Math.max(1e-6, tw);
+    })();
 
     const speedProfileOut = this.getSpeedRpmProfile(speed);
     const zeroSS = swingLevel === 0 && spinLevel === 0;
@@ -409,27 +444,19 @@ class BowlingMachineController {
       ? Math.round(baseRightRPM)
       : this.applyRealisticSpeedRpmPattern(baseRightRPM, speed, speedProfileOut, targetX, targetY);
 
-    // Base outputs (before overlays)
-    let panOut   = this.round1(sums.pan / totalWeight);
-    let panAct   = this.round1(sums.panActual / totalWeight);
-    let tiltOut  = Math.round(sums.tilt / totalWeight);
-    let tiltAct  = Math.round(sums.tiltActual / totalWeight);
-
-    // Apply group overlays to pan/tilt
-    panOut  = this.applyPanSwingOverlay(panOut,  swingLevel, p);
-    panAct  = this.applyPanSwingOverlay(panAct,  swingLevel, p);
-    tiltOut = Math.round(this.applyLowSpeedTiltOverlay(tiltOut, spinLevel, p));
-    tiltAct = Math.round(this.applyLowSpeedTiltOverlay(tiltAct, spinLevel, p));
+    // Apply group overlays to fitted pan/tilt
+    panBase  = this.applyPanSwingOverlay(this.round1(panBase),  swingLevel, p);
+    tiltBase = Math.round(this.applyLowSpeedTiltOverlay(tiltBase, spinLevel, p));
 
     const result = {
-      pan: panOut,
-      panActual: panAct,
-      tilt: tiltOut,
-      tiltActual: tiltAct,
-      leftTilt: Math.round(calcLeft),
-      leftTiltActual: Math.round((sums.midLRActual / totalWeight) + (calcLeft - finalMid)),
-      rightTilt: Math.round(calcRight),
-      rightTiltActual: Math.round((sums.midLRActual / totalWeight) + (calcRight - finalMid)),
+      pan: panBase,
+      panActual: panBase,
+      tilt: tiltBase,
+      tiltActual: tiltBase,
+      leftTilt: Math.round(this.clampLRTilt(calcLeft)),
+      leftTiltActual: Math.round(this.clampLRTilt(calcLeft)),
+      rightTilt: Math.round(this.clampLRTilt(calcRight)),
+      rightTiltActual: Math.round(this.clampLRTilt(calcRight)),
       leftRPM: adjustedLeftRPM,
       rightRPM: adjustedRightRPM,
       usedPoints: bestPoints.length,
@@ -444,7 +471,28 @@ class BowlingMachineController {
     return result;
   }
 
-  // RPM pattern (unchanged except for <=110 guard)
+  getSpeedRpmProfile(speed) {
+    const profile = this.speedRpmProfile.toleranceProfile[speed];
+    if (profile) return profile;
+
+
+    const referenceSpeed = this.speedRpmProfile.referenceSpeed;
+    const distanceFromReference = Math.abs(speed - referenceSpeed);
+
+
+    const rpmTolerance = 5 + Math.pow(distanceFromReference / 8, 1.8);
+    const interpolationWeight = Math.max(0.3, 1.0 - (distanceFromReference / 80));
+    const patternMultiplier = 1.0 + (distanceFromReference / 50);
+
+
+    return {
+      rpmTolerance: Math.min(50, rpmTolerance),
+      interpolationWeight,
+      patternMultiplier
+    };
+  }
+
+  // ============== RPM pattern (unchanged except <= reference guard) ==============
   applyRealisticSpeedRpmPattern(baseRPM, speed, speedProfile, targetX, targetY) {
     const SAFETY_LIMITS = { min: 150, max: 550 };
     const referenceSpeed = this.speedRpmProfile.referenceSpeed;
@@ -503,7 +551,7 @@ class BowlingMachineController {
     }
   }
 
-  // Main entry
+  // ============== Main entry ==============
   async getMachineConfig(speed, x, y, swingLevel, spinLevel) {
     // Validation
     if (
@@ -657,5 +705,102 @@ class BowlingMachineController {
     };
   }
 
-  // Metrics/maintenance and other helpers remain unchanged ...
+  // ============== Metrics and maintenance helpers ==============
+  manageCacheSize() {
+    const now = Date.now();
+    let removedCount = 0;
+    for (const [key, timestamp] of this.cacheTimestamps.entries()) {
+      if (now - timestamp > this.cacheConfig.maxAge) {
+        this.interpolationCache.delete(key);
+        this.cacheTimestamps.delete(key);
+        this.cacheAccessCount.delete(key);
+        removedCount++;
+        this.metrics.expiredEntries++;
+      }
+    }
+    if (this.interpolationCache.size >= this.cacheConfig.cleanupThreshold) {
+      const sortedByUsage = Array.from(this.cacheAccessCount.entries())
+        .sort((a, b) => a[1] - b[1])
+        .slice(0, this.cacheConfig.cleanupBatchSize);
+      sortedByUsage.forEach(([key]) => {
+        this.interpolationCache.delete(key);
+        this.cacheTimestamps.delete(key);
+        this.cacheAccessCount.delete(key);
+        removedCount++;
+      });
+      this.metrics.cacheCleanups++;
+    }
+    this.metrics.lastCleanupRemoved = removedCount;
+    this.metrics.totalMemoryUsage = this.interpolationCache.size * 200;
+    return removedCount;
+  }
+
+  getCachedResult(cacheKey) {
+    if (this.interpolationCache.has(cacheKey)) {
+      const currentCount = this.cacheAccessCount.get(cacheKey) || 0;
+      this.cacheAccessCount.set(cacheKey, currentCount + 1);
+      this.metrics.cacheHits++;
+      return this.interpolationCache.get(cacheKey);
+    }
+    return null;
+  }
+
+  setCachedResult(cacheKey, result) {
+    if (this.interpolationCache.size >= this.cacheConfig.maxSize) {
+      this.manageCacheSize();
+    }
+    const now = Date.now();
+    this.interpolationCache.set(cacheKey, result);
+    this.cacheTimestamps.set(cacheKey, now);
+    this.cacheAccessCount.set(cacheKey, 1);
+    this.metrics.interpolations++;
+    this.metrics.totalMemoryUsage = this.interpolationCache.size * 200;
+  }
+
+  makeCacheKey(speed, x, y, swingLevel, spinLevel) {
+    return `${speed}-${Math.round(x)}-${Math.round(y)}-${swingLevel}-${spinLevel}`;
+  }
+
+  clearCache() {
+    const size = this.interpolationCache.size;
+    this.interpolationCache.clear();
+    this.cacheTimestamps.clear();
+    this.cacheAccessCount.clear();
+    this.metrics.totalMemoryUsage = 0;
+    return size;
+  }
+
+  evictExpiredNow() {
+    return this.manageCacheSize();
+  }
+
+  getCacheStats() {
+    return {
+      size: this.interpolationCache.size,
+      expiredEntries: this.metrics.expiredEntries,
+      lastCleanupRemoved: this.metrics.lastCleanupRemoved,
+      totalMemoryUsage: this.metrics.totalMemoryUsage,
+    };
+  }
+
+  // Preload convenience (ensures JSON is ready)
+  async preload() {
+    await this.ensureDataLoaded();
+    return true;
+  }
+
+  // Optional grid warmup to populate cache (coarse grid)
+  async warmCacheGrid(speed, swingLevel = 0, spinLevel = 0, stepX = 30, stepY = 10) {
+    await this.ensureDataLoaded();
+    let count = 0;
+    for (let x = 0; x <= 300; x += stepX) {
+      for (let y = 5; y <= 80; y += stepY) {
+        const res = this.calculateInterpolationFromJson(speed, x, y, swingLevel, spinLevel);
+        const cacheKey = this.makeCacheKey(speed, x, y, swingLevel, spinLevel);
+        this.setCachedResult(cacheKey, res);
+        count++;
+      }
+    }
+    return { warmed: count, cacheSize: this.interpolationCache.size };
+  }
 }

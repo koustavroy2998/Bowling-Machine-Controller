@@ -93,11 +93,11 @@ def generate_minimal_bowling_dataset_with_rpm_map(
     # Recalibrated: 20 per spin level (unchanged)
     enhanced_tilt_per_level = 20
 
-    # Speed-grouped shared knobs (updated)
+    # Speed-grouped shared knobs (PRESET CONFIGS FROM paste.txt)
     SPEED_GROUPS = {
         'G1_60_70': {
             'speeds': [60, 70],
-            'swing_pan_base': 25,
+            'swing_pan_base': 30,
             'swing_pan_threshold': 3,
             'swing_pan_extra_per_level': 5,
             'tilt_additive_bias': -500,
@@ -106,7 +106,7 @@ def generate_minimal_bowling_dataset_with_rpm_map(
         },
         'G2_80': {
             'speeds': [80],
-            'swing_pan_base': 25,
+            'swing_pan_base': 30,
             'swing_pan_threshold': 3,
             'swing_pan_extra_per_level': 5,
             'tilt_additive_bias': -350,
@@ -115,7 +115,7 @@ def generate_minimal_bowling_dataset_with_rpm_map(
         },
         'G3_90_100': {
             'speeds': [90, 100],
-            'swing_pan_base': 25,
+            'swing_pan_base': 35,
             'swing_pan_threshold': 3,
             'swing_pan_extra_per_level': 5,
             'tilt_additive_bias': 0,
@@ -133,7 +133,7 @@ def generate_minimal_bowling_dataset_with_rpm_map(
         },
         'G5_130_140': {
             'speeds': [130, 140],
-            'swing_pan_base': 25,
+            'swing_pan_base': 15,
             'swing_pan_threshold': 3,
             'swing_pan_extra_per_level': 5,
             'tilt_additive_bias': 50,
@@ -142,7 +142,7 @@ def generate_minimal_bowling_dataset_with_rpm_map(
         },
         'G6_150_160': {
             'speeds': [150, 160],
-            'swing_pan_base': 25,
+            'swing_pan_base': 15,
             'swing_pan_threshold': 3,
             'swing_pan_extra_per_level': 5,
             'tilt_additive_bias': 50,
