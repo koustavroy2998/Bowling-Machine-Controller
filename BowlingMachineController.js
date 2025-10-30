@@ -47,13 +47,17 @@ class BowlingMachineController {
 
     // Speed groups with shared knobs (defaults = neutral; will import from JSON)
     this.speedGroups = [
-      { name: 'G1_60_70', speeds: new Set([60, 70]),
+      { name: 'G1_60_70',   speeds: new Set([60, 70]),
         params: { swingPanBase: 0, swingPanThreshold: 3, swingPanExtraPerLevel: 0, tiltBias: 0, tiltSpinMultiplier: 1.0, lrTiltBias: 0 } },
-      { name: 'G2_80_90', speeds: new Set([80, 90]),
+      { name: 'G2_80',      speeds: new Set([80]),
         params: { swingPanBase: 0, swingPanThreshold: 3, swingPanExtraPerLevel: 0, tiltBias: 0, tiltSpinMultiplier: 1.0, lrTiltBias: 0 } },
-      { name: 'G3_100_130', speeds: new Set([100, 110, 120, 130]),
+      { name: 'G3_90_100',  speeds: new Set([90, 100]),
         params: { swingPanBase: 0, swingPanThreshold: 3, swingPanExtraPerLevel: 0, tiltBias: 0, tiltSpinMultiplier: 1.0, lrTiltBias: 0 } },
-      { name: 'G4_140_160', speeds: new Set([140, 150, 160]),
+      { name: 'G4_110_120', speeds: new Set([110, 120]),
+        params: { swingPanBase: 0, swingPanThreshold: 3, swingPanExtraPerLevel: 0, tiltBias: 0, tiltSpinMultiplier: 1.0, lrTiltBias: 0 } },
+      { name: 'G5_130_140', speeds: new Set([130, 140]),
+        params: { swingPanBase: 0, swingPanThreshold: 3, swingPanExtraPerLevel: 0, tiltBias: 0, tiltSpinMultiplier: 1.0, lrTiltBias: 0 } },
+      { name: 'G6_150_160', speeds: new Set([150, 160]),
         params: { swingPanBase: 0, swingPanThreshold: 3, swingPanExtraPerLevel: 0, tiltBias: 0, tiltSpinMultiplier: 1.0, lrTiltBias: 0 } },
     ];
 
@@ -101,7 +105,7 @@ class BowlingMachineController {
     return true;
   }
 
-  // NEW: import generator speed-group params (maps JSON -> controller fields)
+  // Import generator speed-group params (maps JSON -> controller fields)
   importSpeedGroupsFromJson(metadata) {
     const sg = metadata?.speed_groups;
     if (!sg) return;
@@ -162,7 +166,7 @@ class BowlingMachineController {
         const response = await fetch("bowling_data.json");
         if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
         this.jsonData = await response.json();
-        // Import generator speed-group params for overlays, including lr_tilt_additive_bias
+        // Import generator speed-group params for overlays
         this.importSpeedGroupsFromJson(this.jsonData.generation_metadata);
         this.isDataLoaded = true;
         console.log("JSON data loaded successfully:", this.jsonData.generation_metadata, this.speedGroups);
@@ -234,28 +238,6 @@ class BowlingMachineController {
     return removedCount;
   }
 
-  getCachedResult(cacheKey) {
-    if (this.interpolationCache.has(cacheKey)) {
-      const currentCount = this.cacheAccessCount.get(cacheKey) || 0;
-      this.cacheAccessCount.set(cacheKey, currentCount + 1);
-      this.metrics.cacheHits++;
-      return this.interpolationCache.get(cacheKey);
-    }
-    return null;
-  }
-
-  setCachedResult(cacheKey, result) {
-    if (this.interpolationCache.size >= this.cacheConfig.maxSize) {
-      this.manageCacheSize();
-    }
-    const now = Date.now();
-    this.interpolationCache.set(cacheKey, result);
-    this.cacheTimestamps.set(cacheKey, now);
-    this.cacheAccessCount.set(cacheKey, 1);
-    this.metrics.interpolations++;
-  }
-
-  // Region tolerance
   getRegionTolerance(y) {
     if (y <= 15) return 12;
     if (y <= 35) return 16;
@@ -263,7 +245,6 @@ class BowlingMachineController {
     return 20;
   }
 
-  // Region multiplier
   calculateRegionMultiplier(targetY, point) {
     let m = 1.0;
     if (targetY <= 30) {
@@ -279,7 +260,6 @@ class BowlingMachineController {
     return m;
   }
 
-  // Confidence
   calculateConfidenceScore(points, tolerance) {
     const avgDistance = points.reduce((sum, p) => sum + p.distance, 0) / points.length;
     const maxWeight = Math.max(...points.map((p) => p.weight));
@@ -288,7 +268,6 @@ class BowlingMachineController {
     return Math.round((distanceScore + weightScore) / 2);
   }
 
-  // Accuracy
   calculateAccuracyScore(points, targetX, targetY) {
     const avgDistance = points.reduce((sum, p) => sum + p.distance, 0) / points.length;
     const regionTolerance = this.getRegionTolerance(targetY);

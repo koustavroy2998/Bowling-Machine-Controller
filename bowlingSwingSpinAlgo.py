@@ -3,6 +3,7 @@ import numpy as np
 from datetime import datetime
 
 
+
 def generate_minimal_bowling_dataset_with_rpm_map(
     speed_rpm_map,
     pan_offset=0,
@@ -13,7 +14,7 @@ def generate_minimal_bowling_dataset_with_rpm_map(
     FIXES (v5.3):
     1) Symmetric pan deltas across X (±200) so left/right magnitudes match
     2) Speed-grouped tuning with common knobs per group:
-       G1: 60–70, G2: 80–90, G3: 100–130, G4: 140–160
+       G1: 60–70, G2: 80, G3: 90–100, G4: 110–120, G5: 130–140, G6: 150–160
     3) New lr_tilt_additive_bias: single bias applied equally to Left/Right Tilt
     4) RPM logic unchanged and symmetry preserved
     """
@@ -92,28 +93,28 @@ def generate_minimal_bowling_dataset_with_rpm_map(
     # Recalibrated: 20 per spin level (unchanged)
     enhanced_tilt_per_level = 20
 
-    # Speed-grouped shared knobs (+ new lr_tilt_additive_bias)
+    # Speed-grouped shared knobs (updated)
     SPEED_GROUPS = {
         'G1_60_70': {
             'speeds': [60, 70],
-            'swing_pan_base': 25,            # b
-            'swing_pan_threshold': 3,        # T
-            'swing_pan_extra_per_level': 5,  # E per level beyond T
-            'tilt_additive_bias': -500,      # overall tilt bias for low speeds
-            'tilt_spin_multiplier': 1.15,    # amplify spin->tilt slightly
-            'lr_tilt_additive_bias': 0     # new: same additive applied to L/R tilt
-        },
-        'G2_80_90': {
-            'speeds': [80, 90],
             'swing_pan_base': 25,
             'swing_pan_threshold': 3,
             'swing_pan_extra_per_level': 5,
-            'tilt_additive_bias': -5,
+            'tilt_additive_bias': -500,
+            'tilt_spin_multiplier': 1.15,
+            'lr_tilt_additive_bias': 0
+        },
+        'G2_80': {
+            'speeds': [80],
+            'swing_pan_base': 25,
+            'swing_pan_threshold': 3,
+            'swing_pan_extra_per_level': 5,
+            'tilt_additive_bias': -350,
             'tilt_spin_multiplier': 1.08,
             'lr_tilt_additive_bias': 0
         },
-        'G3_100_130': {
-            'speeds': [100, 110, 120, 130],
+        'G3_90_100': {
+            'speeds': [90, 100],
             'swing_pan_base': 25,
             'swing_pan_threshold': 3,
             'swing_pan_extra_per_level': 5,
@@ -121,14 +122,32 @@ def generate_minimal_bowling_dataset_with_rpm_map(
             'tilt_spin_multiplier': 1.0,
             'lr_tilt_additive_bias': 0
         },
-        'G4_140_160': {
-            'speeds': [140, 150, 160],
+        'G4_110_120': {
+            'speeds': [110, 120],
             'swing_pan_base': 25,
             'swing_pan_threshold': 3,
             'swing_pan_extra_per_level': 5,
-            'tilt_additive_bias': 0,
+            'tilt_additive_bias': 50,
             'tilt_spin_multiplier': 1.0,
-            'lr_tilt_additive_bias': 0
+            'lr_tilt_additive_bias': -120
+        },
+        'G5_130_140': {
+            'speeds': [130, 140],
+            'swing_pan_base': 25,
+            'swing_pan_threshold': 3,
+            'swing_pan_extra_per_level': 5,
+            'tilt_additive_bias': 50,
+            'tilt_spin_multiplier': 1.0,
+            'lr_tilt_additive_bias': -160
+        },
+        'G6_150_160': {
+            'speeds': [150, 160],
+            'swing_pan_base': 25,
+            'swing_pan_threshold': 3,
+            'swing_pan_extra_per_level': 5,
+            'tilt_additive_bias': 50,
+            'tilt_spin_multiplier': 1.0,
+            'lr_tilt_additive_bias': -200
         },
     }
 
@@ -199,7 +218,7 @@ def generate_minimal_bowling_dataset_with_rpm_map(
         final_left_tilt = base_left_tilt + (spin_level * enhanced_tilt_per_level) + swing_left_tilt_boost
         final_right_tilt = base_right_tilt + (-spin_level * enhanced_tilt_per_level) + swing_right_tilt_boost
 
-        # Apply LR tilt additive bias equally to both (new)
+        # Apply LR tilt additive bias equally to both
         final_left_tilt += gp.get('lr_tilt_additive_bias', 0)
         final_right_tilt += gp.get('lr_tilt_additive_bias', 0)
 
@@ -301,6 +320,7 @@ def generate_minimal_bowling_dataset_with_rpm_map(
     print(f"✅ Dataset generated: {output_filename} | Size: {size_mb:.2f} MB")
 
     return minimal_json_data
+
 
 
 if __name__ == "__main__":
