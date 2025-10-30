@@ -2,6 +2,7 @@ import json
 import numpy as np
 from datetime import datetime
 
+
 def generate_minimal_bowling_dataset_with_rpm_map(
     speed_rpm_map,
     pan_offset=0,
@@ -9,14 +10,15 @@ def generate_minimal_bowling_dataset_with_rpm_map(
     output_filename="bowling_data.json"
 ):
     """
-    FIXES (v5.1):
-    1. Remove swing-induced L/R tilt asymmetry (swing affects pan only)
-    2. Spin separation ±20 per level around baseline mid tilt
-    3. RPM symmetry preserved - average of L_RPM and R_RPM equals base RPM
-    4. Preserve progressive pan swing scaling and safety clamps
+    FIXES (v5.3):
+    1) Symmetric pan deltas across X (±200) so left/right magnitudes match
+    2) Speed-grouped tuning with common knobs per group:
+       G1: 60–70, G2: 80–90, G3: 100–130, G4: 140–160
+    3) New lr_tilt_additive_bias: single bias applied equally to Left/Right Tilt
+    4) RPM logic unchanged and symmetry preserved
     """
 
-    print("🎯 GENERATING BOWLING DATASET (v5.1 L/R tilt corrected)")
+    print("🎯 GENERATING BOWLING DATASET (v5.3 symmetric pan + speed groups + LR tilt bias)")
     print("=" * 60)
     print(f"   Pan Offset: {pan_offset}")
     print(f"   Tilt Offset: {tilt_offset}")
@@ -64,41 +66,110 @@ def generate_minimal_bowling_dataset_with_rpm_map(
         160: {'Pan': 2900.0, 'Tilt': 3200.0, 'Left_Tilt': 1100.0, 'Right_Tilt': 1100.0},
     }
 
+    # Symmetric pan deltas (±200) so left/right magnitudes match
     pan_delta = {
-        'centre - 0': 0, 'top- 1': 0, 'left - 2': +250, 'right - 3': -200,
-        'bottom - 4': 0, 'top-mid-centre-5': 0, 'top-mid-left-6': +250, 'top-mid-right-7': -200
+        'centre - 0': 0,
+        'top- 1': 0,
+        'left - 2': +200,
+        'right - 3': -200,
+        'bottom - 4': 0,
+        'top-mid-centre-5': 0,
+        'top-mid-left-6': +200,
+        'top-mid-right-7': -200
     }
 
     lr_tilt_delta = {
-        'centre - 0': 0, 'top- 1': +300, 'left - 2': 0, 'right - 3': 0,
-        'bottom - 4': -400, 'top-mid-centre-5': +200, 'top-mid-left-6': +200, 'top-mid-right-7': +200
+        'centre - 0': 0,
+        'top- 1': +300,
+        'left - 2': 0,
+        'right - 3': 0,
+        'bottom - 4': -400,
+        'top-mid-centre-5': +200,
+        'top-mid-left-6': +200,
+        'top-mid-right-7': +200
     }
 
-    # Recalibrated: 20 per spin level
+    # Recalibrated: 20 per spin level (unchanged)
     enhanced_tilt_per_level = 20
+
+    # Speed-grouped shared knobs (+ new lr_tilt_additive_bias)
+    SPEED_GROUPS = {
+        'G1_60_70': {
+            'speeds': [60, 70],
+            'swing_pan_base': 25,            # b
+            'swing_pan_threshold': 3,        # T
+            'swing_pan_extra_per_level': 5,  # E per level beyond T
+            'tilt_additive_bias': -500,      # overall tilt bias for low speeds
+            'tilt_spin_multiplier': 1.15,    # amplify spin->tilt slightly
+            'lr_tilt_additive_bias': 0     # new: same additive applied to L/R tilt
+        },
+        'G2_80_90': {
+            'speeds': [80, 90],
+            'swing_pan_base': 25,
+            'swing_pan_threshold': 3,
+            'swing_pan_extra_per_level': 5,
+            'tilt_additive_bias': -5,
+            'tilt_spin_multiplier': 1.08,
+            'lr_tilt_additive_bias': 0
+        },
+        'G3_100_130': {
+            'speeds': [100, 110, 120, 130],
+            'swing_pan_base': 25,
+            'swing_pan_threshold': 3,
+            'swing_pan_extra_per_level': 5,
+            'tilt_additive_bias': 0,
+            'tilt_spin_multiplier': 1.0,
+            'lr_tilt_additive_bias': 0
+        },
+        'G4_140_160': {
+            'speeds': [140, 150, 160],
+            'swing_pan_base': 25,
+            'swing_pan_threshold': 3,
+            'swing_pan_extra_per_level': 5,
+            'tilt_additive_bias': 0,
+            'tilt_spin_multiplier': 1.0,
+            'lr_tilt_additive_bias': 0
+        },
+    }
 
     def clamp(v, key):
         r = SAFETY_RANGES[key]
         return max(r['min'], min(r['max'], v))
 
+    def group_params_for_speed(spd):
+        for _, g in SPEED_GROUPS.items():
+            if spd in g['speeds']:
+                return g
+        # default if any is missed
+        return {
+            'swing_pan_base': 25,
+            'swing_pan_threshold': 3,
+            'swing_pan_extra_per_level': 5,
+            'tilt_additive_bias': 0,
+            'tilt_spin_multiplier': 1.0,
+            'lr_tilt_additive_bias': 0
+        }
+
     def calculate_machine_values(speed, swing_level, spin_level, position):
         coords = pos_coords[position]
         c = CENTRE_BASELINES[speed]
         base_rpm = float(speed_rpm_map[speed])
+        gp = group_params_for_speed(speed)
 
-        # === PAN LOGIC with PROGRESSIVE SWING BOOST (ALL SPEEDS) ===
-        swing_pan_base = 25
-        if abs(swing_level) >= 3:
-            extra = (abs(swing_level) - 2) * 5  # level 3→+5, 4→+10, 5→+15
-            swing_pan_base += extra  # reaches 40 at level 5
-        swing_pan_effect = swing_pan_base * swing_level
+        # === PAN with grouped swing overlay (shared knobs) ===
+        # ΔPan_swing = s * (b + max(0, |s|-T)*E)
+        s_abs = abs(swing_level)
+        swing_pan_base = gp['swing_pan_base']
+        if s_abs >= gp['swing_pan_threshold']:
+            swing_pan_base += (s_abs - gp['swing_pan_threshold']) * gp['swing_pan_extra_per_level']
+        swing_pan_effect = swing_pan_base * swing_level  # signed
 
         base_pan = c['Pan'] + pan_delta[position]
         base_tilt = c['Tilt']
         base_left_tilt = c['Left_Tilt'] + lr_tilt_delta[position]
         base_right_tilt = c['Right_Tilt'] + lr_tilt_delta[position]
 
-        # === RPM LOGIC - PRESERVE AVERAGE ===
+        # === RPM LOGIC - PRESERVE AVERAGE (unchanged) ===
         if swing_level == 0:
             left_rpm = right_rpm = base_rpm
         else:
@@ -114,22 +185,25 @@ def generate_minimal_bowling_dataset_with_rpm_map(
                 left_rpm = base_rpm - total_delta
                 right_rpm = base_rpm + total_delta
 
-        # === SPIN EFFECTS (recalibrated) ===
+        # === SPIN EFFECTS (left/right separation unchanged) + grouped tilt gain ===
         spin_pan_effect = spin_level * 10 if spin_level != 0 else 0
-        spin_tilt_effect = spin_level * 5 if spin_level != 0 else 0
-        spin_left_tilt_effect = spin_level * enhanced_tilt_per_level      # ±20/level
-        spin_right_tilt_effect = -spin_level * enhanced_tilt_per_level    # ∓20/level
+        spin_tilt_effect = (spin_level * 5 * gp['tilt_spin_multiplier']) if spin_level != 0 else 0
 
-        # === REMOVE swing-induced L/R tilt asymmetry ===
+        # === No swing-induced L/R tilt asymmetry ===
         swing_left_tilt_boost = 0
         swing_right_tilt_boost = 0
 
-        # === FINAL VALUES ===
+        # === FINAL VALUES with grouped overlays ===
         final_pan = base_pan + swing_pan_effect + spin_pan_effect + pan_offset
-        final_tilt = base_tilt + spin_tilt_effect + tilt_offset
-        final_left_tilt = base_left_tilt + spin_left_tilt_effect + swing_left_tilt_boost
-        final_right_tilt = base_right_tilt + spin_right_tilt_effect + swing_right_tilt_boost
+        final_tilt = base_tilt + spin_tilt_effect + tilt_offset + gp['tilt_additive_bias']
+        final_left_tilt = base_left_tilt + (spin_level * enhanced_tilt_per_level) + swing_left_tilt_boost
+        final_right_tilt = base_right_tilt + (-spin_level * enhanced_tilt_per_level) + swing_right_tilt_boost
 
+        # Apply LR tilt additive bias equally to both (new)
+        final_left_tilt += gp.get('lr_tilt_additive_bias', 0)
+        final_right_tilt += gp.get('lr_tilt_additive_bias', 0)
+
+        # clamps
         final_pan = clamp(final_pan, 'pan')
         final_tilt = clamp(final_tilt, 'tilt')
         final_left_tilt = clamp(final_left_tilt, 'left_right_tilt')
@@ -187,17 +261,23 @@ def generate_minimal_bowling_dataset_with_rpm_map(
                 if processed % 300 == 0:
                     print(f"Progress: {processed}/{total_combinations} combinations")
 
+    # serialize speed groups
+    speed_groups_serializable = {}
+    for k, v in SPEED_GROUPS.items():
+        speed_groups_serializable[k] = {**v, 'speeds': list(v['speeds'])}
+
     minimal_json_data = {
         'generation_metadata': {
             'generated_timestamp': datetime.now().strftime('%Y-%m-%d %H:%M:%S'),
-            'generator_version': 'v5.1-lr-tilt-corrected',
+            'generator_version': 'v5.3-symmetric-pan-speed-groups-lr-tilt-bias',
             'total_combinations': total_combinations,
             'fixes_applied': [
-                'Remove swing-induced L/R tilt asymmetry',
-                'Spin separation ±20 per level for L/R tilt',
-                'RPM symmetry preserved: (L_RPM + R_RPM)/2 = base_RPM',
-                'Pan swing scaling up to 40/level for |swing|≥3'
-            ]
+                'Symmetric pan deltas across X (±200)',
+                'Speed-grouped tuning with shared knobs',
+                'New lr_tilt_additive_bias for equal L/R tilt tuning',
+                'RPM logic unchanged'
+            ],
+            'speed_groups': speed_groups_serializable
         },
         'applied_settings': {
             'rpm_map_default_used': False,
@@ -221,6 +301,7 @@ def generate_minimal_bowling_dataset_with_rpm_map(
     print(f"✅ Dataset generated: {output_filename} | Size: {size_mb:.2f} MB")
 
     return minimal_json_data
+
 
 if __name__ == "__main__":
     machine_rpm_map = {
