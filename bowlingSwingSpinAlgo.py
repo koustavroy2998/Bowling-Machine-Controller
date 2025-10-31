@@ -92,7 +92,7 @@ def generate_minimal_bowling_dataset_with_rpm_map(
     }
 
     # Recalibrated: 20 per spin level (unchanged)
-    enhanced_tilt_per_level = 150
+    enhanced_tilt_per_level = 200
 
     # Speed-grouped shared knobs (PRESET CONFIGS FROM paste.txt)
     SPEED_GROUPS = {
