@@ -420,10 +420,23 @@ class BowlingMachineController {
     // Guarantee: near top-mid cannot have less tilt than anchor
     if (targetY <= 35) finalMid = Math.max(finalMid, anchoredMid);
 
-    // Compose LR from anchored mid with spin-only separation, then apply LR bias
-    let { left: calcLeft, right: calcRight } = this.lrFromMid(finalMid, spinLevel);
-    const p = this.getGroupParams(speed);
-    ({ left: calcLeft, right: calcRight } = this.applyLRTiltOverlay(calcLeft, calcRight, p));
+    // Use raw Left_Tilt and Right_Tilt from JSON (weighted average from bestPoints)
+    const calcLeft = (() => {
+      let tw=0, s=0;
+      for (const p of bestPoints) {
+        tw += p.w;
+        s += p.data.Left_Tilt * p.w;
+      }
+      return s / Math.max(1e-6, tw);
+    })();
+    const calcRight = (() => {
+      let tw=0, s=0;
+      for (const p of bestPoints) {
+        tw += p.w;
+        s += p.data.Right_Tilt * p.w;
+      }
+      return s / Math.max(1e-6, tw);
+    })();
 
     // RPMs: reuse existing logic
     const baseLeftRPM = (() => {
@@ -444,9 +457,9 @@ class BowlingMachineController {
       ? Math.round(baseRightRPM)
       : this.applyRealisticSpeedRpmPattern(baseRightRPM, speed, speedProfileOut, targetX, targetY);
 
-    // Apply group overlays to fitted pan/tilt
-    panBase  = this.applyPanSwingOverlay(this.round1(panBase),  swingLevel, p);
-    tiltBase = Math.round(this.applyLowSpeedTiltOverlay(tiltBase, spinLevel, p));
+    // Pan/Tilt overlays already baked into JSON, just round and clamp
+    panBase  = this.clampRange('pan', this.round1(panBase));
+    tiltBase = this.clampRange('tilt', Math.round(tiltBase));
 
     const result = {
       pan: panBase,
@@ -626,28 +639,19 @@ class BowlingMachineController {
         ? Math.round(closestPosition.data.R_RPM)
         : this.applyRealisticSpeedRpmPattern(closestPosition.data.R_RPM, speed, speedProfile, x, y);
 
-      // Compose calibrated L/R even for exact to ensure swing-only L=R if data drifts
-      const anchoredMid = this.midTiltAnchor(y);
-      const swingOnly = spinLevel === 0;
+      // Use raw Left_Tilt and Right_Tilt from JSON directly
       let leftTilt = Math.round(closestPosition.data.Left_Tilt);
       let rightTilt = Math.round(closestPosition.data.Right_Tilt);
-      if (swingOnly) {
-        leftTilt = rightTilt = Math.round(anchoredMid);
-      }
 
-      // Group overlays
-      const p = this.getGroupParams(speed);
-      let panOut   = this.round1(closestPosition.data.Pan);
-      let panAct   = this.round1(closestPosition.data.Pan_actual);
-      let tiltOut  = Math.round(closestPosition.data.Tilt);
-      let tiltAct  = Math.round(closestPosition.data.Tilt_actual);
-      panOut  = this.applyPanSwingOverlay(panOut,  swingLevel, p);
-      panAct  = this.applyPanSwingOverlay(panAct,  swingLevel, p);
-      tiltOut = Math.round(this.applyLowSpeedTiltOverlay(tiltOut, spinLevel, p));
-      tiltAct = Math.round(this.applyLowSpeedTiltOverlay(tiltAct, spinLevel, p));
+      // All overlays already baked into JSON, just use raw values and clamp
+      let panOut   = this.clampRange('pan', this.round1(closestPosition.data.Pan));
+      let panAct   = this.clampRange('pan', this.round1(closestPosition.data.Pan_actual));
+      let tiltOut  = this.clampRange('tilt', Math.round(closestPosition.data.Tilt));
+      let tiltAct  = this.clampRange('tilt', Math.round(closestPosition.data.Tilt_actual));
 
-      // Apply LR tilt bias equally and clamp AFTER anchoring to reflect bias
-      ({ left: leftTilt, right: rightTilt } = this.applyLRTiltOverlay(leftTilt, rightTilt, p));
+      // LR tilt bias is already baked into the JSON values, so just clamp
+      leftTilt = this.clampLRTilt(leftTilt);
+      rightTilt = this.clampLRTilt(rightTilt);
 
       return {
         speed, swingLevel, spinLevel,
