@@ -6,26 +6,31 @@ from datetime import datetime
 
 def generate_minimal_bowling_dataset_with_rpm_map(
     speed_rpm_map,
+    speed_group_tuning=None,
     pan_offset=0,
     tilt_offset=0,
     output_filename="bowling_data.json"
 ):
     """
-    FIXES (v5.4):
+    FIXES (v5.5):
     1) Symmetric pan deltas across X (±200) so left/right magnitudes match
     2) Speed-grouped tuning with common knobs per group:
        G1: 60–70, G2: 80, G3: 90–100, G4: 110–120, G5: 130–140, G6: 150–160
     3) New lr_tilt_additive_bias: single bias applied equally to Left/Right Tilt
     4) RPM logic unchanged and symmetry preserved
     5) lr_tilt_offset_multiplier: scales position-based tilt offsets from center
+    6) NEW: enhanced_tilt_per_level (spin effect on L/R tilt) configurable per speed group
+    7) NEW: spin_pan_effect_multiplier (spin effect on pan) configurable per speed group
     """
 
-    print("🎯 GENERATING BOWLING DATASET (v5.4 symmetric pan + speed groups + LR tilt bias + lr_tilt_offset_multiplier)")
+    print("🎯 GENERATING BOWLING DATASET (v5.5 + speed-group enhanced_tilt_per_level + spin_pan_effect_multiplier)")
     print("=" * 60)
     print(f"   Pan Offset: {pan_offset}")
     print(f"   Tilt Offset: {tilt_offset}")
     print(f"   Output File: {output_filename}")
     print(f"   RPM Map: {speed_rpm_map}")
+    if speed_group_tuning:
+        print(f"   Speed Group Tuning Provided: {len(speed_group_tuning)} groups")
     print("=" * 60)
 
     speeds = [60, 70, 80, 90, 100, 110, 120, 130, 140, 150, 160]
@@ -91,10 +96,8 @@ def generate_minimal_bowling_dataset_with_rpm_map(
         'top-mid-right-7': +200
     }
 
-    # Recalibrated: 20 per spin level (unchanged)
-    enhanced_tilt_per_level = 200
-
     # Speed-grouped shared knobs (PRESET CONFIGS FROM paste.txt)
+    # NOW INCLUDES: enhanced_tilt_per_level, spin_pan_effect_multiplier
     SPEED_GROUPS = {
         'G1_60_70': {
             'speeds': [60, 70],
@@ -104,7 +107,9 @@ def generate_minimal_bowling_dataset_with_rpm_map(
             'tilt_additive_bias': -300,
             'tilt_spin_multiplier': 1.15,
             'lr_tilt_additive_bias': -200,
-            'lr_tilt_offset_multiplier': 1.5
+            'lr_tilt_offset_multiplier': 1.5,
+            'enhanced_tilt_per_level': 200,
+            'spin_pan_effect_multiplier': 10
         },
         'G2_80': {
             'speeds': [80],
@@ -114,7 +119,9 @@ def generate_minimal_bowling_dataset_with_rpm_map(
             'tilt_additive_bias': 0,
             'tilt_spin_multiplier': 1.08,
             'lr_tilt_additive_bias': 0,
-            'lr_tilt_offset_multiplier': 1.5
+            'lr_tilt_offset_multiplier': 1.5,
+            'enhanced_tilt_per_level': 200,
+            'spin_pan_effect_multiplier': 10
         },
         'G3_90_100': {
             'speeds': [90, 100],
@@ -124,7 +131,9 @@ def generate_minimal_bowling_dataset_with_rpm_map(
             'tilt_additive_bias': 0,
             'tilt_spin_multiplier': 1.0,
             'lr_tilt_additive_bias': 0,
-            'lr_tilt_offset_multiplier': 1.5
+            'lr_tilt_offset_multiplier': 1.5,
+            'enhanced_tilt_per_level': 200,
+            'spin_pan_effect_multiplier': 10
         },
         'G4_110_120': {
             'speeds': [110, 120],
@@ -134,7 +143,9 @@ def generate_minimal_bowling_dataset_with_rpm_map(
             'tilt_additive_bias': 0,
             'tilt_spin_multiplier': 1.0,
             'lr_tilt_additive_bias': 0,
-            'lr_tilt_offset_multiplier': 1.5
+            'lr_tilt_offset_multiplier': 1.5,
+            'enhanced_tilt_per_level': 200,
+            'spin_pan_effect_multiplier': 10
         },
         'G5_130_140': {
             'speeds': [130, 140],
@@ -144,7 +155,9 @@ def generate_minimal_bowling_dataset_with_rpm_map(
             'tilt_additive_bias': 0,
             'tilt_spin_multiplier': 1.0,
             'lr_tilt_additive_bias': 0,
-            'lr_tilt_offset_multiplier': 1.5
+            'lr_tilt_offset_multiplier': 1.5,
+            'enhanced_tilt_per_level': 200,
+            'spin_pan_effect_multiplier': 10
         },
         'G6_150_160': {
             'speeds': [150, 160],
@@ -154,9 +167,18 @@ def generate_minimal_bowling_dataset_with_rpm_map(
             'tilt_additive_bias': 0,
             'tilt_spin_multiplier': 1.0,
             'lr_tilt_additive_bias': 0,
-            'lr_tilt_offset_multiplier': 1.5
+            'lr_tilt_offset_multiplier': 1.5,
+            'enhanced_tilt_per_level': 200,
+            'spin_pan_effect_multiplier': 10
         },
     }
+
+    # Override with user-provided speed group tuning if supplied
+    if speed_group_tuning:
+        for group_name, user_params in speed_group_tuning.items():
+            if group_name in SPEED_GROUPS:
+                SPEED_GROUPS[group_name].update(user_params)
+                print(f"✓ Overriding {group_name} with user params: {user_params}")
 
     def clamp(v, key):
         r = SAFETY_RANGES[key]
@@ -174,7 +196,9 @@ def generate_minimal_bowling_dataset_with_rpm_map(
             'tilt_additive_bias': 0,
             'tilt_spin_multiplier': 1.0,
             'lr_tilt_additive_bias': 0,
-            'lr_tilt_offset_multiplier': 1.0
+            'lr_tilt_offset_multiplier': 1.0,
+            'enhanced_tilt_per_level': 200,
+            'spin_pan_effect_multiplier': 10
         }
 
     def calculate_machine_values(speed, swing_level, spin_level, position):
@@ -195,8 +219,6 @@ def generate_minimal_bowling_dataset_with_rpm_map(
         base_tilt = c['Tilt']
 
         max_offset = max(lr_tilt_delta.values())
-
-        
 
         # Apply lr_tilt_offset_multiplier to position-based tilt offsets
         left_offset = lr_tilt_delta[position]
@@ -224,8 +246,8 @@ def generate_minimal_bowling_dataset_with_rpm_map(
                 left_rpm = base_rpm - total_delta
                 right_rpm = base_rpm + total_delta
 
-        # === SPIN EFFECTS (left/right separation unchanged) + grouped tilt gain ===
-        spin_pan_effect = spin_level * 10 if spin_level != 0 else 0
+        # === SPIN EFFECTS (left/right separation + grouped params) ===
+        spin_pan_effect = spin_level * gp['spin_pan_effect_multiplier'] if spin_level != 0 else 0
         spin_tilt_effect = (spin_level * 5 * gp['tilt_spin_multiplier']) if spin_level != 0 else 0
 
         # === No swing-induced L/R tilt asymmetry ===
@@ -235,8 +257,8 @@ def generate_minimal_bowling_dataset_with_rpm_map(
         # === FINAL VALUES with grouped overlays ===
         final_pan = base_pan + swing_pan_effect + spin_pan_effect + pan_offset
         final_tilt = base_tilt + spin_tilt_effect + tilt_offset + gp['tilt_additive_bias']
-        final_left_tilt = base_left_tilt + (spin_level * enhanced_tilt_per_level) + swing_left_tilt_boost
-        final_right_tilt = base_right_tilt + (-spin_level * enhanced_tilt_per_level) + swing_right_tilt_boost
+        final_left_tilt = base_left_tilt + (spin_level * gp['enhanced_tilt_per_level']) + swing_left_tilt_boost
+        final_right_tilt = base_right_tilt + (-spin_level * gp['enhanced_tilt_per_level']) + swing_right_tilt_boost
 
         # Apply LR tilt additive bias equally to both
         final_left_tilt += gp.get('lr_tilt_additive_bias', 0)
@@ -308,13 +330,15 @@ def generate_minimal_bowling_dataset_with_rpm_map(
     minimal_json_data = {
         'generation_metadata': {
             'generated_timestamp': datetime.now().strftime('%Y-%m-%d %H:%M:%S'),
-            'generator_version': 'v5.4-symmetric-pan-speed-groups-lr-tilt-bias-lr_tilt_offset_multiplier',
+            'generator_version': 'v5.5-speed-group-enhanced-tilt-spin-pan-multipliers',
             'total_combinations': total_combinations,
             'fixes_applied': [
                 'Symmetric pan deltas across X (±200)',
                 'Speed-grouped tuning with shared knobs',
                 'New lr_tilt_additive_bias for equal L/R tilt tuning',
                 'New lr_tilt_offset_multiplier to scale position-based tilt offsets from center',
+                'NEW: enhanced_tilt_per_level per speed group (configurable)',
+                'NEW: spin_pan_effect_multiplier per speed group (configurable)',
                 'RPM logic unchanged'
             ],
             'speed_groups': speed_groups_serializable
@@ -350,8 +374,85 @@ if __name__ == "__main__":
         110: 350.0, 120: 380.0, 130: 420.0, 140: 480.0, 150: 520.0, 160: 550.0
     }
 
+    # Example: Override speed group tuning
+    custom_speed_group_tuning = {
+     'G1_60_70': {
+            'speeds': [60, 70],
+            'swing_pan_base': 30,
+            'swing_pan_threshold': 3,
+            'swing_pan_extra_per_level': 5,
+            'tilt_additive_bias': -300,
+            'tilt_spin_multiplier': 1.15,
+            'lr_tilt_additive_bias': -200,
+            'lr_tilt_offset_multiplier': 1.4,
+            'enhanced_tilt_per_level': 200,
+            'spin_pan_effect_multiplier': 10
+        },
+        'G2_80': {
+            'speeds': [80],
+            'swing_pan_base': 25,
+            'swing_pan_threshold': 3,
+            'swing_pan_extra_per_level': 5,
+            'tilt_additive_bias': 0,
+            'tilt_spin_multiplier': 1.08,
+            'lr_tilt_additive_bias': 0,
+            'lr_tilt_offset_multiplier': 1.5,
+            'enhanced_tilt_per_level': 200,
+            'spin_pan_effect_multiplier': 10
+        },
+        'G3_90_100': {
+            'speeds': [90, 100],
+            'swing_pan_base': 30,
+            'swing_pan_threshold': 3,
+            'swing_pan_extra_per_level': 0,
+            'tilt_additive_bias': 0,
+            'tilt_spin_multiplier': 1.0,
+            'lr_tilt_additive_bias': 0,
+            'lr_tilt_offset_multiplier': 1.5,
+            'enhanced_tilt_per_level': 200,
+            'spin_pan_effect_multiplier': 10
+        },
+        'G4_110_120': {
+            'speeds': [110, 120],
+            'swing_pan_base': 30,
+            'swing_pan_threshold': 3,
+            'swing_pan_extra_per_level': 5,
+            'tilt_additive_bias': 0,
+            'tilt_spin_multiplier': 1.0,
+            'lr_tilt_additive_bias': 0,
+            'lr_tilt_offset_multiplier': 1.5,
+            'enhanced_tilt_per_level': 200,
+            'spin_pan_effect_multiplier': 10
+        },
+        'G5_130_140': {
+            'speeds': [130, 140],
+            'swing_pan_base': 15,
+            'swing_pan_threshold': 3,
+            'swing_pan_extra_per_level': 5,
+            'tilt_additive_bias': 50,
+            'tilt_spin_multiplier': 1.0,
+            'lr_tilt_additive_bias': -160,
+            'lr_tilt_offset_multiplier': 1.0,
+            'enhanced_tilt_per_level': 200,
+            'spin_pan_effect_multiplier': 10
+        },
+        'G6_150_160': {
+            'speeds': [150, 160],
+            'swing_pan_base': 15,
+            'swing_pan_threshold': 3,
+            'swing_pan_extra_per_level': 5,
+            'tilt_additive_bias': 50,
+            'tilt_spin_multiplier': 1.0,
+            'lr_tilt_additive_bias': -200,
+            'lr_tilt_offset_multiplier': 1.0,
+            'enhanced_tilt_per_level': 200,
+            'spin_pan_effect_multiplier': 10
+        },
+    }
+
     result = generate_minimal_bowling_dataset_with_rpm_map(
         speed_rpm_map=machine_rpm_map,
+        speed_group_tuning=custom_speed_group_tuning,
         pan_offset=0,
         tilt_offset=0,
         output_filename="bowling_data.json"

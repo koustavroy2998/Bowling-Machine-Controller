@@ -45,21 +45,21 @@ class BowlingMachineController {
       tilt: { min: 500, max: 3900 },
     };
 
-    // Speed groups with PRESET CONFIGS (matching generator)
-    // Current grouping: 60–70, 80, 90–100, 110–120, 130–140, 150–160
+    // Speed groups with PRESET CONFIGS (matching generator v5.5)
+    // NOW INCLUDES: enhanced_tilt_per_level, spin_pan_effect_multiplier
     this.speedGroups = [
       { name: 'G1_60_70',   speeds: new Set([60, 70]),
-        params: { swingPanBase: 25, swingPanThreshold: 3, swingPanExtraPerLevel: 5, tiltBias: -500, tiltSpinMultiplier: 1.15, lrTiltBias: 0 } },
+        params: { swingPanBase: 30, swingPanThreshold: 3, swingPanExtraPerLevel: 5, tiltBias: -300, tiltSpinMultiplier: 1.15, lrTiltBias: -200, lrTiltOffsetMultiplier: 1.4, enhancedTiltPerLevel: 200, spinPanEffectMultiplier: 10 } },
       { name: 'G2_80',      speeds: new Set([80]),
-        params: { swingPanBase: 25, swingPanThreshold: 3, swingPanExtraPerLevel: 5, tiltBias: -350, tiltSpinMultiplier: 1.08, lrTiltBias: 0 } },
+        params: { swingPanBase: 25, swingPanThreshold: 3, swingPanExtraPerLevel: 5, tiltBias: 0, tiltSpinMultiplier: 1.08, lrTiltBias: 0, lrTiltOffsetMultiplier: 1.5, enhancedTiltPerLevel: 200, spinPanEffectMultiplier: 10 } },
       { name: 'G3_90_100',  speeds: new Set([90, 100]),
-        params: { swingPanBase: 25, swingPanThreshold: 3, swingPanExtraPerLevel: 5, tiltBias: 0, tiltSpinMultiplier: 1.0, lrTiltBias: 0 } },
+        params: { swingPanBase: 30, swingPanThreshold: 3, swingPanExtraPerLevel: 0, tiltBias: 0, tiltSpinMultiplier: 1.0, lrTiltBias: 0, lrTiltOffsetMultiplier: 1.5, enhancedTiltPerLevel: 200, spinPanEffectMultiplier: 10 } },
       { name: 'G4_110_120', speeds: new Set([110, 120]),
-        params: { swingPanBase: 13, swingPanThreshold: 3, swingPanExtraPerLevel: 5, tiltBias: 50, tiltSpinMultiplier: 1.0, lrTiltBias: -120 } },
+        params: { swingPanBase: 30, swingPanThreshold: 3, swingPanExtraPerLevel: 5, tiltBias: 0, tiltSpinMultiplier: 1.0, lrTiltBias: 0, lrTiltOffsetMultiplier: 1.5, enhancedTiltPerLevel: 200, spinPanEffectMultiplier: 10 } },
       { name: 'G5_130_140', speeds: new Set([130, 140]),
-        params: { swingPanBase: 20, swingPanThreshold: 3, swingPanExtraPerLevel: 5, tiltBias: 50, tiltSpinMultiplier: 1.0, lrTiltBias: -160 } },
+        params: { swingPanBase: 15, swingPanThreshold: 3, swingPanExtraPerLevel: 5, tiltBias: 50, tiltSpinMultiplier: 1.0, lrTiltBias: -160, lrTiltOffsetMultiplier: 1.0, enhancedTiltPerLevel: 200, spinPanEffectMultiplier: 10 } },
       { name: 'G6_150_160', speeds: new Set([150, 160]),
-        params: { swingPanBase: 15, swingPanThreshold: 3, swingPanExtraPerLevel: 5, tiltBias: 50, tiltSpinMultiplier: 1.0, lrTiltBias: -200 } },
+        params: { swingPanBase: 15, swingPanThreshold: 3, swingPanExtraPerLevel: 5, tiltBias: 50, tiltSpinMultiplier: 1.0, lrTiltBias: -200, lrTiltOffsetMultiplier: 1.0, enhancedTiltPerLevel: 200, spinPanEffectMultiplier: 10 } },
     ];
 
     // Caches
@@ -137,7 +137,7 @@ class BowlingMachineController {
   // ============== Speed-group helpers ==============
   getGroupParams(speed) {
     for (const g of this.speedGroups) if (g.speeds.has(speed)) return g.params;
-    return { swingPanBase: 25, swingPanThreshold: 3, swingPanExtraPerLevel: 5, tiltBias: 0, tiltSpinMultiplier: 1.0, lrTiltBias: 0 };
+    return { swingPanBase: 25, swingPanThreshold: 3, swingPanExtraPerLevel: 5, tiltBias: 0, tiltSpinMultiplier: 1.0, lrTiltBias: 0, lrTiltOffsetMultiplier: 1.0, enhancedTiltPerLevel: 200, spinPanEffectMultiplier: 10 };
   }
 
   setGroupParams(groupName, newParams) {
@@ -174,6 +174,9 @@ class BowlingMachineController {
       tiltBias: 'tilt_additive_bias',
       tiltSpinMultiplier: 'tilt_spin_multiplier',
       lrTiltBias: 'lr_tilt_additive_bias',
+      lrTiltOffsetMultiplier: 'lr_tilt_offset_multiplier',
+      enhancedTiltPerLevel: 'enhanced_tilt_per_level',
+      spinPanEffectMultiplier: 'spin_pan_effect_multiplier',
     };
 
     for (const g of this.speedGroups) {
@@ -186,6 +189,9 @@ class BowlingMachineController {
         tiltBias: src[mapKeys.tiltBias] ?? g.params.tiltBias,
         tiltSpinMultiplier: src[mapKeys.tiltSpinMultiplier] ?? g.params.tiltSpinMultiplier,
         lrTiltBias: src[mapKeys.lrTiltBias] ?? g.params.lrTiltBias,
+        lrTiltOffsetMultiplier: src[mapKeys.lrTiltOffsetMultiplier] ?? g.params.lrTiltOffsetMultiplier,
+        enhancedTiltPerLevel: src[mapKeys.enhancedTiltPerLevel] ?? g.params.enhancedTiltPerLevel,
+        spinPanEffectMultiplier: src[mapKeys.spinPanEffectMultiplier] ?? g.params.spinPanEffectMultiplier,
       };
       this.setGroupParams(g.name, newParams);
     }
