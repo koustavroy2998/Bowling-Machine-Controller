@@ -104,7 +104,7 @@ def generate_minimal_bowling_dataset_with_rpm_map(
             'tilt_additive_bias': -300,
             'tilt_spin_multiplier': 1.15,
             'lr_tilt_additive_bias': -200,
-            'lr_tilt_offset_multiplier': 1.4
+            'lr_tilt_offset_multiplier': 1.5
         },
         'G2_80': {
             'speeds': [80],
@@ -138,23 +138,23 @@ def generate_minimal_bowling_dataset_with_rpm_map(
         },
         'G5_130_140': {
             'speeds': [130, 140],
-            'swing_pan_base': 15,
+            'swing_pan_base': 30,
             'swing_pan_threshold': 3,
             'swing_pan_extra_per_level': 5,
-            'tilt_additive_bias': 50,
+            'tilt_additive_bias': 0,
             'tilt_spin_multiplier': 1.0,
-            'lr_tilt_additive_bias': -160,
-            'lr_tilt_offset_multiplier': 1.0
+            'lr_tilt_additive_bias': 0,
+            'lr_tilt_offset_multiplier': 1.5
         },
         'G6_150_160': {
             'speeds': [150, 160],
-            'swing_pan_base': 15,
+            'swing_pan_base': 30,
             'swing_pan_threshold': 3,
             'swing_pan_extra_per_level': 5,
-            'tilt_additive_bias': 50,
+            'tilt_additive_bias': 0,
             'tilt_spin_multiplier': 1.0,
-            'lr_tilt_additive_bias': -200,
-            'lr_tilt_offset_multiplier': 1.0
+            'lr_tilt_additive_bias': 0,
+            'lr_tilt_offset_multiplier': 1.5
         },
     }
 
@@ -203,8 +203,8 @@ def generate_minimal_bowling_dataset_with_rpm_map(
         left_offset_multiplier = 1 +  (gp['lr_tilt_offset_multiplier'] - 1) * (left_offset / max_offset)
         right_offset = lr_tilt_delta[position]
         right_offset_multiplier = 1 +  (gp['lr_tilt_offset_multiplier'] - 1) * (right_offset / max_offset)
-        left_change = left_offset * left_offset_multiplier if left_offset > 0 else left_offset
-        right_change = right_offset * right_offset_multiplier if right_offset > 0 else right_offset
+        left_change = left_offset * left_offset_multiplier
+        right_change = right_offset * right_offset_multiplier
         base_left_tilt = c['Left_Tilt'] + left_change
         base_right_tilt = c['Right_Tilt'] + right_change
 
