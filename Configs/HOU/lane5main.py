@@ -42,7 +42,7 @@ def generate_minimal_bowling_dataset_with_rpm_map(
     ]
 
     SAFETY_RANGES = {
-        'rpm': {'min': 150, 'max': 550},
+        'rpm': {'min': 150, 'max': 560},
         'pan': {'min': 2500, 'max': 3500},
         'tilt': {'min': 500, 'max': 3900},
         'left_right_tilt': {'min': 400, 'max': 2700}
@@ -370,17 +370,17 @@ def generate_minimal_bowling_dataset_with_rpm_map(
 
 if __name__ == "__main__":
     machine_rpm_map = {
-        60: 205.0,
-         70: 240.0, 
-         80: 270.0, 
-         90: 300.0, 
-         100: 315.0,
-        110: 350.0, 
-        120: 380.0, 
-        130: 420.0, 
-        140: 480.0, 
-        150: 520.0, 
-        160: 550.0
+        60: 220.0,
+         70: 260.0, 
+         80: 300.0, 
+         90: 320.0, 
+         100: 340.0,
+        110: 380.0, 
+        120: 420.0, 
+        130: 480.0, 
+        140: 530.0, 
+        150: 560.0, 
+        160: 560.0
     }
 
     # Example: Override speed group tuning
@@ -462,7 +462,7 @@ if __name__ == "__main__":
     result = generate_minimal_bowling_dataset_with_rpm_map(
         speed_rpm_map=machine_rpm_map,
         speed_group_tuning=custom_speed_group_tuning,
-        pan_offset=0,
+        pan_offset=220,
         tilt_offset=0,
         output_filename="pitch-mapping.json"
     )
