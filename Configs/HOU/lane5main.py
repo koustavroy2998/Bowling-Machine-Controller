@@ -370,13 +370,13 @@ def generate_minimal_bowling_dataset_with_rpm_map(
 
 if __name__ == "__main__":
     machine_rpm_map = {
-        60: 220.0,
+        60: 210.0,
          70: 260.0, 
          80: 300.0, 
          90: 320.0, 
          100: 340.0,
         110: 380.0, 
-        120: 420.0, 
+        120: 410.0,  # changed 
         130: 480.0, 
         140: 530.0, 
         150: 560.0, 

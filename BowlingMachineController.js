@@ -513,7 +513,7 @@ class BowlingMachineController {
 
   // ============== RPM pattern (unchanged except <= reference guard) ==============
   applyRealisticSpeedRpmPattern(baseRPM, speed, speedProfile, targetX, targetY) {
-    const SAFETY_LIMITS = { min: 150, max: 550 };
+    const SAFETY_LIMITS = { min: 150, max: 560 };
     const referenceSpeed = this.speedRpmProfile.referenceSpeed;
 
     if (speed <= referenceSpeed) {

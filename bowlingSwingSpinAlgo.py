@@ -42,7 +42,7 @@ def generate_minimal_bowling_dataset_with_rpm_map(
     ]
 
     SAFETY_RANGES = {
-        'rpm': {'min': 150, 'max': 550},
+        'rpm': {'min': 150, 'max': 560},
         'pan': {'min': 2500, 'max': 3500},
         'tilt': {'min': 500, 'max': 3900},
         'left_right_tilt': {'min': 400, 'max': 2700}
