@@ -374,8 +374,8 @@ if __name__ == "__main__":
          70: 260.0, 
          80: 300.0, 
          90: 320.0, 
-         100: 340.0,
-        110: 380.0, 
+         100: 340.0, # not reaching 100 till 98 
+        110: 380.0,   # not reaching 110 till 109
         120: 410.0,  # changed 
         130: 480.0, 
         140: 530.0, 
@@ -463,7 +463,7 @@ if __name__ == "__main__":
         speed_rpm_map=machine_rpm_map,
         speed_group_tuning=custom_speed_group_tuning,
         pan_offset=220,
-        tilt_offset=0,
+        tilt_offset=280,
         output_filename="pitch-mapping.json"
     )
 
