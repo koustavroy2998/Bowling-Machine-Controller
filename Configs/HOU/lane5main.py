@@ -374,10 +374,10 @@ if __name__ == "__main__":
          70: 260.0, 
          80: 300.0, 
          90: 320.0, 
-         100: 340.0, # not reaching 100 till 98 
-        110: 380.0,   # not reaching 110 till 109
+         100: 340.0, 
+        110: 380.0,  
         120: 410.0,  # changed 
-        130: 480.0, 
+        130: 480.0,
         140: 530.0, 
         150: 560.0, 
         160: 560.0
@@ -462,7 +462,7 @@ if __name__ == "__main__":
     result = generate_minimal_bowling_dataset_with_rpm_map(
         speed_rpm_map=machine_rpm_map,
         speed_group_tuning=custom_speed_group_tuning,
-        pan_offset=220,
+        pan_offset=222,
         tilt_offset=280,
         output_filename="pitch-mapping.json"
     )
