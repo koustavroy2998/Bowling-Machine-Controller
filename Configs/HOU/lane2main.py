@@ -467,6 +467,8 @@ if __name__ == "__main__":
         output_filename="pitch-mapping.json"
     )
 
+    
+
     # Verification test
     print("\n" + "="*60)
     print("VERIFICATION: Speed 110, Swing +3, Spin 0, Centre")
