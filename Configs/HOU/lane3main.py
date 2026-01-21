@@ -440,7 +440,7 @@ if __name__ == "__main__":
             'swing_pan_extra_per_level': 5,
             'tilt_additive_bias': 0,
             'tilt_spin_multiplier': 1.0,
-            'lr_tilt_additive_bias': 0,
+            'lr_tilt_additive_bias': -220,
             'lr_tilt_offset_multiplier': 1.5,
             'enhanced_tilt_per_level': 200,
             'spin_pan_effect_multiplier': 10
