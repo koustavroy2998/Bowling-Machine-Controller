@@ -323,6 +323,34 @@ class BowlingMachineController {
     return 1200;
   }
 
+  // NEW: Calculate maximum allowed L/R tilt for Y > 40 to enforce monotonic decrease
+  getMaxLRTiltForY(y, speed, swingLevel, spinLevel) {
+    if (y <= 40) return null; // No constraint for Y <= 40
+    
+    // Get reference values at Y=40 and Y=80 from the dataset
+    const speedData = this.jsonData.data[`${speed}_kmph`];
+    const swingKey = `swing_level_${swingLevel}`;
+    const spinKey = `spin_level_${spinLevel}`;
+    const levelData = speedData.swing_levels[swingKey].spin_levels[spinKey];
+    
+    // Get values at Y=40 (centre position)
+    const centreData = levelData.positions['centre - 0'];
+    const leftAt40 = centreData.Left_Tilt;
+    const rightAt40 = centreData.Right_Tilt;
+    
+    // Get values at Y=80 (bottom position)
+    const bottomData = levelData.positions['bottom - 4'];
+    const leftAt80 = bottomData.Left_Tilt;
+    const rightAt80 = bottomData.Right_Tilt;
+    
+    // Linear interpolation between Y=40 and Y=80
+    const t = (y - 40) / (80 - 40); // 0 at Y=40, 1 at Y=80
+    const maxLeft = leftAt40 + t * (leftAt80 - leftAt40);
+    const maxRight = rightAt40 + t * (rightAt80 - rightAt40);
+    
+    return { maxLeft, maxRight };
+  }
+
   // Anisotropic distance
   anisotropicDistance(ax, ay, bx, by) {
     const yAvg = (ay + by) / 2;
@@ -341,7 +369,7 @@ class BowlingMachineController {
     return { left: mid, right: mid };
   }
 
-  // ============== Interpolation core (reworked) ==============
+  // ============== Interpolation core (reworked with monotonic decrease fix) ==============
   calculateInterpolationFromJson(speed, targetX, targetY, swingLevel, spinLevel) {
     const cacheKey = `${speed}-${targetX}-${targetY}-${swingLevel}-${spinLevel}`;
 
@@ -427,7 +455,7 @@ class BowlingMachineController {
     if (targetY <= 35) finalMid = Math.max(finalMid, anchoredMid);
 
     // Use raw Left_Tilt and Right_Tilt from JSON (weighted average from bestPoints)
-    const calcLeft = (() => {
+    let calcLeft = (() => {
       let tw=0, s=0;
       for (const p of bestPoints) {
         tw += p.w;
@@ -435,7 +463,7 @@ class BowlingMachineController {
       }
       return s / Math.max(1e-6, tw);
     })();
-    const calcRight = (() => {
+    let calcRight = (() => {
       let tw=0, s=0;
       for (const p of bestPoints) {
         tw += p.w;
@@ -443,6 +471,16 @@ class BowlingMachineController {
       }
       return s / Math.max(1e-6, tw);
     })();
+
+    // CRITICAL FIX: Enforce monotonic decrease for Y > 40
+    if (targetY > 40) {
+      const maxLRTilt = this.getMaxLRTiltForY(targetY, speed, swingLevel, spinLevel);
+      if (maxLRTilt) {
+        // Apply strict maximum limits based on linear interpolation
+        calcLeft = Math.min(calcLeft, maxLRTilt.maxLeft);
+        calcRight = Math.min(calcRight, maxLRTilt.maxRight);
+      }
+    }
 
     // RPMs: reuse existing logic
     const baseLeftRPM = (() => {
@@ -494,15 +532,12 @@ class BowlingMachineController {
     const profile = this.speedRpmProfile.toleranceProfile[speed];
     if (profile) return profile;
 
-
     const referenceSpeed = this.speedRpmProfile.referenceSpeed;
     const distanceFromReference = Math.abs(speed - referenceSpeed);
-
 
     const rpmTolerance = 5 + Math.pow(distanceFromReference / 8, 1.8);
     const interpolationWeight = Math.max(0.3, 1.0 - (distanceFromReference / 80));
     const patternMultiplier = 1.0 + (distanceFromReference / 50);
-
 
     return {
       rpmTolerance: Math.min(50, rpmTolerance),
