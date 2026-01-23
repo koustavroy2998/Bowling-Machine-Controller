@@ -40,7 +40,7 @@ class BowlingMachineController {
 
     // Safety limits
     this.safety = {
-      leftRightTilt: { min: 850, max: 2000 },
+      leftRightTilt: { min: 890, max: 2000 },
       pan: { min: 2500, max: 3300 },
       tilt: { min: 2000, max: 3250 },
     };
