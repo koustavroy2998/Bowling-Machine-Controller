@@ -45,7 +45,7 @@ def generate_minimal_bowling_dataset_with_rpm_map(
         'rpm': {'min': 150, 'max': 560},
         'pan': {'min': 2500, 'max': 3500},
         'tilt': {'min': 500, 'max': 3900},
-        'left_right_tilt': {'min': 400, 'max': 2700}
+        'left_right_tilt': {'min': 850, 'max': 2700}
     }
 
     pos_coords = {
@@ -440,7 +440,7 @@ if __name__ == "__main__":
             'swing_pan_extra_per_level': 5,
             'tilt_additive_bias': 0,
             'tilt_spin_multiplier': 1.0,
-            'lr_tilt_additive_bias': -220,
+            'lr_tilt_additive_bias': -120,
             'lr_tilt_offset_multiplier': 1.5,
             'enhanced_tilt_per_level': 200,
             'spin_pan_effect_multiplier': 10
