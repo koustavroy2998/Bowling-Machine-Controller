@@ -380,7 +380,7 @@ if __name__ == "__main__":
         130: 420.0, 
         140: 480.0, 
         150: 520.0, 
-        160: 550.0
+        160: 550.0 
     }
 
     # Example: Override speed group tuning
