@@ -454,20 +454,24 @@ class BowlingMachineController {
     // Guarantee: near top-mid cannot have less tilt than anchor
     if (targetY <= 35) finalMid = Math.max(finalMid, anchoredMid);
 
-    // Use raw Left_Tilt and Right_Tilt from JSON (weighted average from bestPoints)
+    // L/R tilt depends on y only — weight by y-distance, ignoring x
     let calcLeft = (() => {
       let tw=0, s=0;
       for (const p of bestPoints) {
-        tw += p.w;
-        s += p.data.Left_Tilt * p.w;
+        const yDist = Math.abs(p.data.Y - targetY);
+        const w = 1.0 / (yDist + 0.1);
+        tw += w;
+        s += p.data.Left_Tilt * w;
       }
       return s / Math.max(1e-6, tw);
     })();
     let calcRight = (() => {
       let tw=0, s=0;
       for (const p of bestPoints) {
-        tw += p.w;
-        s += p.data.Right_Tilt * p.w;
+        const yDist = Math.abs(p.data.Y - targetY);
+        const w = 1.0 / (yDist + 0.1);
+        tw += w;
+        s += p.data.Right_Tilt * w;
       }
       return s / Math.max(1e-6, tw);
     })();
