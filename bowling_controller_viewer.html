@@ -1,0 +1,830 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Century Cricket · Session Viewer</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@300;400;500&family=Syne:wght@400;600;700;800&display=swap" rel="stylesheet">
+<script src="BowlingMachineController.js"></script>
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --bg:#070a0d;--s1:#0e1217;--s2:#141920;--s3:#1a2028;
+  --border:#1f2833;--border2:#263040;
+  --green:#00e676;--gd:#001a0f;--gm:rgba(0,230,118,.1);
+  --blue:#29b6f6;--bd:#001929;
+  --amber:#ffb300;--ad:#1f1500;
+  --red:#f44336;--rd:#1a0000;
+  --purple:#ce93d8;--pd:#1a0a2e;
+  --pitch-base:#2d4a1e;--pitch-strip:#3a5a26;
+  --text:#dde4ee;--muted:#6b7d93;--dim:#3a4a5a;
+  --mono:'DM Mono',monospace;--display:'Syne',sans-serif;
+  --r:5px;--r2:9px;
+}
+html{scroll-behavior:smooth}
+body{background:var(--bg);color:var(--text);font-family:var(--display);min-height:100vh}
+body::before{content:'';position:fixed;inset:0;
+  background-image:url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='.04'/%3E%3C/svg%3E");
+  opacity:.4;pointer-events:none;z-index:0}
+.app{position:relative;z-index:1;display:grid;grid-template-rows:auto 1fr;min-height:100vh}
+
+/* Header */
+.hdr{display:flex;align-items:center;justify-content:space-between;
+  padding:18px 28px;border-bottom:1px solid var(--border);
+  background:rgba(14,18,23,.95);backdrop-filter:blur(8px);
+  position:sticky;top:0;z-index:100}
+.logo{display:flex;align-items:center;gap:12px}
+.logo-ico{width:32px;height:32px;background:var(--green);border-radius:50%;
+  display:flex;align-items:center;justify-content:center;font-size:16px;
+  box-shadow:0 0 20px rgba(0,230,118,.3)}
+.logo h1{font-size:13px;font-weight:700;letter-spacing:2px;text-transform:uppercase;color:var(--text)}
+.logo p{font-size:10px;color:var(--muted);font-family:var(--mono)}
+.hdr-right{display:flex;gap:8px;align-items:center}
+.badge{background:var(--s2);border:1px solid var(--border2);border-radius:14px;
+  padding:3px 11px;font-family:var(--mono);font-size:10px;color:var(--muted)}
+.badge .ok{color:var(--green)}.badge .warn{color:var(--amber)}.badge .err{color:var(--red)}
+
+/* Error bar */
+.ebar{background:var(--rd);border:1px solid var(--red);border-radius:var(--r);
+  padding:10px 16px;font-family:var(--mono);font-size:11px;color:var(--red);
+  display:none;gap:8px;align-items:flex-start;margin:16px 28px 0}
+.ebar.on{display:flex}
+
+/* 3-col layout */
+.body{display:grid;grid-template-columns:300px 1fr 380px;gap:0;align-items:start}
+
+/* Left panel */
+.left-panel{background:var(--s1);border-right:1px solid var(--border);
+  padding:20px 18px;min-height:calc(100vh - 61px);min-width: fit-content;
+  position:sticky;top:61px;overflow-y:auto;max-height:calc(100vh - 61px)}
+.sec-label{font-size:9px;font-weight:700;letter-spacing:2px;text-transform:uppercase;
+  color:var(--blue);margin-bottom:10px;display:block}
+.field{margin-bottom:11px}
+.field label{display:block;font-size:10px;font-weight:500;color:var(--muted);
+  margin-bottom:4px;letter-spacing:.4px;text-transform:uppercase}
+.field select,.field input[type=number]{width:100%;background:var(--s3);border:1px solid var(--border2);
+  border-radius:var(--r);color:var(--text);font-family:var(--mono);font-size:12px;
+  padding:8px 10px;outline:none;transition:border-color .15s;appearance:none}
+.field select:focus,.field input:focus{border-color:var(--blue)}
+.f2{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.f3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:6px}
+.sep{border:none;border-top:1px solid var(--border);margin:14px 0}
+
+/* Toggle */
+.tog-row{display:flex;align-items:center;justify-content:space-between;margin-bottom:11px}
+.tog-row .tl{font-size:12px;font-weight:500;color:var(--text)}
+.tog{position:relative;width:42px;height:24px}
+.tog input{opacity:0;width:0;height:0}
+.tog-t{position:absolute;inset:0;background:var(--border2);border-radius:12px;cursor:pointer;transition:background .2s}
+.tog input:checked+.tog-t{background:var(--green)}
+.tog-t::after{content:'';position:absolute;left:3px;top:3px;width:18px;height:18px;
+  background:#fff;border-radius:50%;transition:transform .2s}
+.tog input:checked+.tog-t::after{transform:translateX(18px)}
+
+/* Level buttons */
+.lvl-g{display:grid;grid-template-columns:repeat(3,1fr);gap:5px;margin-bottom:11px}
+.lb{padding:8px 4px;text-align:center;background:var(--s3);border:1px solid var(--border2);
+  border-radius:var(--r);cursor:pointer;font-family:var(--display);font-size:11px;
+  font-weight:500;color:var(--muted);transition:all .15s;line-height:1.35}
+.lb:hover{border-color:var(--blue);color:var(--blue)}
+.lb.on{border-color:var(--green);color:var(--green);background:var(--gm)}
+.lb small{display:block;font-size:9px;opacity:.65;font-weight:400}
+.lb:disabled{opacity:.3;cursor:default}
+
+/* Calibration section */
+.calib-toggle{display:flex;align-items:center;justify-content:space-between;
+  cursor:pointer;padding:7px 0;user-select:none}
+.calib-toggle .ct-label{font-size:9px;font-weight:700;letter-spacing:1.5px;
+  text-transform:uppercase;color:var(--muted)}
+.calib-toggle .ct-label span{color:var(--amber);font-size:8px;margin-left:4px}
+.calib-toggle .ct-arrow{font-size:10px;color:var(--dim);transition:transform .2s}
+.calib-toggle.open .ct-arrow{transform:rotate(180deg)}
+.calib-body{display:none;padding-top:4px}
+.calib-body.open{display:block}
+
+/* Calib level tabs */
+.calib-tabs{display:flex;gap:4px;margin-bottom:10px}
+.ctab{padding:4px 10px;background:var(--s3);border:1px solid var(--border2);
+  border-radius:var(--r);cursor:pointer;font-family:var(--mono);font-size:10px;
+  color:var(--muted);transition:all .15s}
+.ctab:hover{border-color:var(--blue);color:var(--blue)}
+.ctab.on{border-color:var(--amber);color:var(--amber);background:var(--ad)}
+.calib-lvl-panel{display:none}
+.calib-lvl-panel.on{display:block}
+
+/* Calib row: label + 3 inputs */
+.calib-row{margin-bottom:8px}
+.calib-row .cr-lbl{font-size:9px;color:var(--dim);font-family:var(--mono);
+  letter-spacing:.5px;text-transform:uppercase;margin-bottom:4px}
+.calib-note{font-size:9px;color:var(--amber);font-family:var(--mono);margin-top:3px}
+
+/* Run button */
+.run-btn{width:100%;padding:12px;background:var(--green);color:#000;border:none;
+  border-radius:var(--r);font-family:var(--display);font-size:13px;font-weight:700;
+  cursor:pointer;transition:opacity .15s;box-shadow:0 4px 18px rgba(0,230,118,.22);letter-spacing:.3px}
+.run-btn:hover{opacity:.87}
+.run-btn:disabled{opacity:.4;cursor:not-allowed;box-shadow:none}
+
+/* Centre: pitch */
+.centre{display:flex;flex-direction:column;align-items:center;
+  padding:24px 20px;background:var(--bg);border-right:1px solid var(--border);
+  min-height:calc(100vh - 61px)}
+.pitch-wrap{position:relative;width:200px;flex-shrink:0}
+.pitch{width:100%;aspect-ratio:1/3;background:var(--pitch-base);border-radius:8px;
+  position:relative;overflow:visible;
+  box-shadow:0 0 40px rgba(0,0,0,.6),0 0 0 1px rgba(255,255,255,.06);cursor:crosshair}
+.pitch::before{content:'';position:absolute;inset:0;border-radius:8px;
+  background:repeating-linear-gradient(180deg,transparent 0px,transparent 18px,rgba(255,255,255,.025) 18px,rgba(255,255,255,.025) 19px);
+  pointer-events:none}
+.pitch-strip{position:absolute;left:30%;right:30%;top:0;bottom:0;
+  background:var(--pitch-strip);border-radius:4px;pointer-events:none}
+.crease{position:absolute;left:0;right:0;height:1px;background:rgba(255,255,255,.35)}
+.crease.batting{top:18%}.crease.bowling{bottom:18%}
+.gl-zone{position:absolute;left:15%;right:15%;top:35%;height:20%;
+  background:rgba(0,230,118,.06);border:1px dashed rgba(0,230,118,.2);border-radius:3px;pointer-events:none}
+.pitch-axis-x{display:flex;justify-content:space-between;margin-top:6px;font-family:var(--mono);font-size:9px;color:var(--dim)}
+.pitch-axis-y{position:absolute;right:-38px;top:0;bottom:0;display:flex;flex-direction:column;
+  justify-content:space-between;font-family:var(--mono);font-size:9px;color:var(--dim);padding:2px 0}
+.dot{position:absolute;border-radius:50%;transform:translate(-50%,-50%);transition:left .2s,top .2s;pointer-events:none;z-index:10}
+.dot.base{width:12px;height:12px;background:var(--blue);box-shadow:0 0 12px var(--blue),0 0 4px rgba(255,255,255,.5)}
+.dot.var-dot{width:9px;height:9px;background:var(--amber);box-shadow:0 0 10px var(--amber);opacity:.85}
+.dot.def-dot{width:7px;height:7px;background:rgba(41,182,246,.4);border:1px solid var(--blue);opacity:.5}
+.dot.sel-dot{width:11px;height:11px;background:var(--green);box-shadow:0 0 14px var(--green),0 0 5px rgba(255,255,255,.5);opacity:1;z-index:20}
+.pitch-legend{margin-top:16px;display:flex;flex-direction:column;gap:6px;width:100%}
+.legend-row{display:flex;align-items:center;gap:8px;font-family:var(--mono);font-size:10px;color:var(--muted)}
+.legend-dot{width:8px;height:8px;border-radius:50%;flex-shrink:0}
+.pitch-stats{margin-top:16px;width:100%;display:grid;grid-template-columns:1fr 1fr;gap:6px}
+.pstat{background:var(--s2);border:1px solid var(--border);border-radius:var(--r);padding:8px 10px}
+.pstat .psv{font-family:var(--mono);font-size:16px;font-weight:500;color:var(--text)}
+.pstat .psl{font-size:9px;text-transform:uppercase;letter-spacing:.8px;color:var(--dim);margin-top:2px}
+.pstat.g .psv{color:var(--green)}.pstat.b .psv{color:var(--blue)}.pstat.a .psv{color:var(--amber)}
+
+/* Right panel */
+.right-panel{padding:20px 20px 40px;min-height:calc(100vh - 61px);overflow-y:auto}
+.meta-strip{display:flex;gap:1px;background:var(--border);border-radius:var(--r2);overflow:hidden;margin-bottom:14px}
+.ms{flex:1;padding:10px 12px;background:var(--s1);display:flex;flex-direction:column;gap:2px}
+.ms .msv{font-family:var(--mono);font-size:15px;font-weight:500;color:var(--text)}
+.ms .msl{font-size:9px;text-transform:uppercase;letter-spacing:.8px;color:var(--dim)}
+.ms.g{background:var(--gd)}.ms.g .msv{color:var(--green)}
+.ms.b{background:var(--bd)}.ms.b .msv{color:var(--blue)}
+.toolbar{display:flex;align-items:center;justify-content:space-between;margin-bottom:12px}
+.sid{font-size:10px;color:var(--dim);font-family:var(--mono);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:220px}
+.dl-btn{display:inline-flex;align-items:center;gap:5px;background:var(--s2);border:1px solid var(--border2);
+  border-radius:var(--r);padding:5px 11px;font-family:var(--mono);font-size:10px;color:var(--muted);cursor:pointer;transition:color .1s,border-color .1s}
+.dl-btn:hover{color:var(--text);border-color:var(--green)}
+.over-blk{background:var(--s1);border:1px solid var(--border);border-radius:var(--r2);margin-bottom:10px;overflow:hidden}
+.over-hdr{padding:8px 14px;background:var(--s2);border-bottom:1px solid var(--border);
+  display:flex;align-items:center;gap:8px;font-size:10px;font-weight:600;color:var(--muted);letter-spacing:1px;text-transform:uppercase}
+.over-hdr .on{color:var(--text);font-family:var(--mono);font-size:13px}
+.vb{font-size:9px;padding:2px 7px;border-radius:9px;background:var(--ad);color:var(--amber);font-weight:700}
+.balls{display:grid;grid-template-columns:repeat(6,1fr)}
+.bc{padding:10px 8px 12px;border-right:1px solid var(--border);cursor:pointer;transition:background .1s;position:relative}
+.bc:last-child{border-right:none}
+.bc:hover{background:var(--s2)}
+.bc.var{background:rgba(255,179,0,.06)}.bc.var:hover{background:rgba(255,179,0,.12)}
+.bc.sel{outline:2px solid var(--blue);outline-offset:-2px}
+.bcn{font-size:9px;color:var(--dim);font-family:var(--mono);margin-bottom:3px}
+.bct{font-size:8px;font-weight:600;color:var(--muted);line-height:1.3;min-height:22px;margin-bottom:4px}
+.bc.var .bct{color:var(--amber)}
+.bcs{font-family:var(--mono);font-size:15px;font-weight:500;color:var(--blue)}
+.bcs small{font-size:9px;font-weight:400;opacity:.6}
+.bcsp{font-family:var(--mono);font-size:10px;color:var(--purple);margin-top:1px}
+.bcsw{font-family:var(--mono);font-size:9px;color:var(--muted)}
+.bctag{position:absolute;top:4px;right:4px;font-size:8px;padding:1px 4px;border-radius:3px;font-family:var(--mono);font-weight:600}
+.bctag.exact{background:var(--gd);color:var(--green)}.bctag.interp{background:var(--bd);color:var(--blue)}
+
+/* Drawer */
+.drawer{background:var(--s1);border:1px solid var(--border);border-radius:var(--r2);margin-top:12px;overflow:hidden;display:none}
+.drawer.open{display:block}
+.dh{padding:11px 18px;background:var(--s2);border-bottom:1px solid var(--border);
+  display:flex;align-items:center;justify-content:space-between}
+.dh h3{font-size:12px;font-weight:600;color:var(--text)}
+.cx{background:none;border:none;color:var(--muted);cursor:pointer;font-size:17px;line-height:1;padding:0 3px}
+.cx:hover{color:var(--text)}
+.db{padding:16px}
+.chip-row{display:flex;gap:7px;margin-bottom:12px;flex-wrap:wrap}
+.chip{background:var(--s3);border:1px solid var(--border2);border-radius:var(--r);padding:4px 10px;font-family:var(--mono);font-size:11px}
+.chip .ck{color:var(--muted);margin-right:3px}.chip .cv{color:var(--text);font-weight:500}
+.chip.chg{border-color:var(--amber)}.chip.chg .cv{color:var(--amber)}
+.qrow{display:flex;gap:14px;margin-bottom:14px;flex-wrap:wrap;align-items:flex-end}
+.qi{display:flex;flex-direction:column;gap:3px}
+.ql{font-size:9px;text-transform:uppercase;letter-spacing:.8px;color:var(--dim)}
+.qbar{width:100px;height:4px;background:var(--border2);border-radius:2px;overflow:hidden}
+.qfill{height:100%;border-radius:2px}
+.qfill.g{background:var(--green)}.qfill.b{background:var(--blue)}
+.qn{font-family:var(--mono);font-size:11px;color:var(--text)}
+.mcg{display:grid;grid-template-columns:repeat(5,1fr);gap:8px;margin-bottom:14px}
+.mcc{background:var(--s2);border:1px solid var(--border2);border-radius:var(--r);padding:10px 11px}
+.mcc.hi{border-color:var(--green);background:var(--gd)}
+.mcc.hi2{border-color:var(--purple);background:var(--pd)}
+.mcc .ml{font-size:9px;text-transform:uppercase;letter-spacing:.8px;color:var(--dim);margin-bottom:3px}
+.mcc .mv{font-family:var(--mono);font-size:18px;font-weight:500;color:var(--text)}
+.mcc.hi .mv{color:var(--green)}.mcc.hi2 .mv{color:var(--purple)}
+.mcc .ma{font-family:var(--mono);font-size:10px;color:var(--dim);margin-top:1px}
+.jw{position:relative}
+.jcopy{position:absolute;top:7px;right:7px;background:var(--s3);border:1px solid var(--border2);
+  border-radius:var(--r);padding:3px 9px;font-family:var(--mono);font-size:10px;color:var(--muted);cursor:pointer;transition:color .1s}
+.jcopy:hover{color:var(--text)}
+.jblk{background:var(--bg);border:1px solid var(--border);border-radius:var(--r);padding:12px;
+  font-family:var(--mono);font-size:10px;line-height:1.7;max-height:220px;overflow-y:auto;white-space:pre;color:var(--muted)}
+.jblk::-webkit-scrollbar{width:3px}
+.jblk::-webkit-scrollbar-thumb{background:var(--border2);border-radius:2px}
+.jk{color:#64b5f6}.jstr{color:var(--green)}.jnum{color:var(--amber)}.jboo{color:var(--purple)}
+
+/* Empty/loading */
+.empty{text-align:center;padding:60px 20px;color:var(--dim)}
+.empty .ei{font-size:36px;margin-bottom:10px;opacity:.4}
+.empty p{font-size:12px;line-height:1.6}
+.empty code{background:var(--s2);padding:2px 5px;border-radius:3px;font-family:var(--mono);font-size:11px;color:var(--text)}
+.loading{background:var(--s1);border:1px solid var(--border);border-radius:var(--r2);padding:40px;text-align:center;display:none}
+.loading.on{display:block}
+.spinner{width:24px;height:24px;border:3px solid var(--border2);border-top-color:var(--green);
+  border-radius:50%;animation:spin .7s linear infinite;margin:0 auto 12px}
+@keyframes spin{to{transform:rotate(360deg)}}
+.loading p{font-size:12px;color:var(--muted);font-family:var(--mono)}
+.loading small{font-size:10px;color:var(--dim);display:block;margin-top:5px;word-break:break-all}
+
+@media(max-width:1100px){.body{grid-template-columns:260px 1fr}.centre{display:none}}
+@media(max-width:700px){.body{grid-template-columns:1fr}.left-panel{position:static;max-height:none;border-right:none;border-bottom:1px solid var(--border)}.balls{grid-template-columns:repeat(3,1fr)}.mcg{grid-template-columns:repeat(3,1fr)}}
+</style>
+</head>
+<body>
+<div class="app">
+
+<div class="hdr">
+  <div class="logo">
+    <div class="logo-ico">🏏</div>
+    <div><h1>Century Cricket</h1><p>getSessionConfig() · Live Output</p></div>
+  </div>
+  <div class="hdr-right">
+    <div class="badge" id="jsonBadge">bowling_data.json <span class="warn">not loaded</span></div>
+    <div class="badge" id="modeBadge">mode <span>—</span></div>
+  </div>
+</div>
+
+<div id="errBar" class="ebar"><span>⚠</span><span id="errMsg"></span></div>
+
+<div class="body">
+
+<!-- LEFT -->
+<div class="left-panel">
+  <span class="sec-label">ballConfig</span>
+  <div class="f2">
+    <div class="field"><label>speed (km/h)</label>
+      <select id="speed">
+        <option>60</option><option>70</option><option value="80" selected>80</option>
+        <option>90</option><option>100</option><option>110</option>
+        <option>120</option><option>130</option><option>140</option><option>150</option><option>160</option>
+      </select>
+    </div>
+    <div class="field"><label>totalBalls</label>
+      <input type="number" id="totalBalls" value="18" min="1" max="135">
+    </div>
+  </div>
+  <div class="f2">
+    <div class="field"><label>x (0–300)</label><input type="number" id="xVal" value="220" min="0" max="300"></div>
+    <div class="field"><label>y (5–80)</label><input type="number" id="yVal" value="35" min="5" max="80"></div>
+  </div>
+  <div class="f2">
+    <div class="field"><label>swingLevel (−5–+5)</label><input type="number" id="swingLevel" value="0" min="-5" max="5"></div>
+    <div class="field"><label>spinLevel (−5–+5)</label><input type="number" id="spinLevel" value="2" min="-5" max="5"></div>
+  </div>
+
+  <div class="sep"></div>
+  <span class="sec-label">sessionOptions</span>
+
+  <div class="tog-row">
+    <span class="tl">isRandom</span>
+    <label class="tog">
+      <input type="checkbox" id="isRandom" checked onchange="onToggle()">
+      <span class="tog-t"></span>
+    </label>
+  </div>
+
+  <div id="lvlSec">
+    <div style="font-size:9px;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;color:var(--muted);margin-bottom:7px">randomLevel</div>
+    <div class="lvl-g">
+      <button class="lb" data-l="1" onclick="setLevel(1)">L1<small>1–2/over</small></button>
+      <button class="lb on" data-l="2" onclick="setLevel(2)">L2<small>2/over</small></button>
+      <button class="lb" data-l="3" onclick="setLevel(3)">L3<small>2–3/over</small></button>
+    </div>
+  </div>
+
+  <div class="sep"></div>
+
+  <!-- ── CALIBRATION ──────────────────────────────────────── -->
+  <div class="calib-toggle" id="calibToggle" onclick="toggleCalib()">
+    <span class="ct-label">Calibration <span>TBC</span></span>
+    <span class="ct-arrow" id="calibArrow">▾</span>
+  </div>
+
+  <div class="calib-body" id="calibBody">
+
+    <!-- Coordinate units -->
+    <div class="f2" style="margin-bottom:10px">
+      <div class="field">
+        <label>X units/cm</label>
+        <input type="number" id="calX" value="0.2" step="0.01" min="0.01" onchange="applyCalib()">
+      </div>
+      <div class="field">
+        <label>Y units/cm</label>
+        <input type="number" id="calY" value="0.5" step="0.001" min="0.001" onchange="applyCalib()">
+      </div>
+    </div>
+    <div class="calib-note" style="margin-bottom:10px">X/Y: machine units per real cm on pitch</div>
+
+    <!-- Per-level drift ranges: tabs L1 / L2 / L3 -->
+    <div class="calib-tabs">
+      <div class="ctab on" data-cl="1" onclick="setCalibLevel(1)">L1</div>
+      <div class="ctab" data-cl="2" onclick="setCalibLevel(2)">L2</div>
+      <div class="ctab" data-cl="3" onclick="setCalibLevel(3)">L3</div>
+    </div>
+
+    <!-- L1 -->
+    <div class="calib-lvl-panel on" id="clp1">
+      <div class="calib-row">
+        <div class="cr-lbl">Speed drift km/h  { min · max · minGap }</div>
+        <div class="f3">
+          <input type="number" id="c1_sd_min" value="5"  step="1" onchange="applyCalib()">
+          <input type="number" id="c1_sd_max" value="7"  step="1" onchange="applyCalib()">
+          <input type="number" id="c1_sd_gap" value="3"  step="1" onchange="applyCalib()">
+        </div>
+      </div>
+      <div class="calib-row">
+        <div class="cr-lbl">Length delta cm  { min · max · minGap }</div>
+        <div class="f3">
+          <input type="number" id="c1_ld_min" value="15" step="1" onchange="applyCalib()">
+          <input type="number" id="c1_ld_max" value="25" step="1" onchange="applyCalib()">
+          <input type="number" id="c1_ld_gap" value="8"  step="1" onchange="applyCalib()">
+        </div>
+      </div>
+      <div class="calib-row">
+        <div class="cr-lbl">Line delta cm  { min · max · minGap }</div>
+        <div class="f3">
+          <input type="number" id="c1_li_min" value="15" step="1" onchange="applyCalib()">
+          <input type="number" id="c1_li_max" value="25" step="1" onchange="applyCalib()">
+          <input type="number" id="c1_li_gap" value="8"  step="1" onchange="applyCalib()">
+        </div>
+      </div>
+      <div class="calib-row">
+        <div class="cr-lbl">RPM drift  { min · max · minGap }</div>
+        <div class="f3">
+          <input type="number" id="c1_rpm_min" value="5"  step="1" onchange="applyCalib()">
+          <input type="number" id="c1_rpm_max" value="15" step="1" onchange="applyCalib()">
+          <input type="number" id="c1_rpm_gap" value="5"  step="1" onchange="applyCalib()">
+        </div>
+      </div>
+      <div class="calib-row">
+        <div class="cr-lbl">Tilt drift  { min · max · minGap }</div>
+        <div class="f3">
+          <input type="number" id="c1_tl_min" value="10" step="1" onchange="applyCalib()">
+          <input type="number" id="c1_tl_max" value="30" step="1" onchange="applyCalib()">
+          <input type="number" id="c1_tl_gap" value="10" step="1" onchange="applyCalib()">
+        </div>
+      </div>
+      <div class="calib-row">
+        <div class="cr-lbl">Left tilt drift  { min · max · minGap }</div>
+        <div class="f3">
+          <input type="number" id="c1_lt_min" value="10" step="1" onchange="applyCalib()">
+          <input type="number" id="c1_lt_max" value="40" step="1" onchange="applyCalib()">
+          <input type="number" id="c1_lt_gap" value="15" step="1" onchange="applyCalib()">
+        </div>
+      </div>
+      <div class="calib-row">
+        <div class="cr-lbl">Right tilt drift  { min · max · minGap }</div>
+        <div class="f3">
+          <input type="number" id="c1_rt_min" value="10" step="1" onchange="applyCalib()">
+          <input type="number" id="c1_rt_max" value="40" step="1" onchange="applyCalib()">
+          <input type="number" id="c1_rt_gap" value="15" step="1" onchange="applyCalib()">
+        </div>
+      </div>
+    </div>
+
+    <!-- L2 -->
+    <div class="calib-lvl-panel" id="clp2">
+      <div class="calib-row"><div class="cr-lbl">Speed drift km/h</div><div class="f3"><input type="number" id="c2_sd_min" value="7" step="1" onchange="applyCalib()"><input type="number" id="c2_sd_max" value="10" step="1" onchange="applyCalib()"><input type="number" id="c2_sd_gap" value="4" step="1" onchange="applyCalib()"></div></div>
+      <div class="calib-row"><div class="cr-lbl">Length delta cm</div><div class="f3"><input type="number" id="c2_ld_min" value="25" step="1" onchange="applyCalib()"><input type="number" id="c2_ld_max" value="35" step="1" onchange="applyCalib()"><input type="number" id="c2_ld_gap" value="10" step="1" onchange="applyCalib()"></div></div>
+      <div class="calib-row"><div class="cr-lbl">Line delta cm</div><div class="f3"><input type="number" id="c2_li_min" value="25" step="1" onchange="applyCalib()"><input type="number" id="c2_li_max" value="35" step="1" onchange="applyCalib()"><input type="number" id="c2_li_gap" value="10" step="1" onchange="applyCalib()"></div></div>
+      <div class="calib-row"><div class="cr-lbl">RPM drift</div><div class="f3"><input type="number" id="c2_rpm_min" value="10" step="1" onchange="applyCalib()"><input type="number" id="c2_rpm_max" value="25" step="1" onchange="applyCalib()"><input type="number" id="c2_rpm_gap" value="8" step="1" onchange="applyCalib()"></div></div>
+      <div class="calib-row"><div class="cr-lbl">Tilt drift</div><div class="f3"><input type="number" id="c2_tl_min" value="20" step="1" onchange="applyCalib()"><input type="number" id="c2_tl_max" value="60" step="1" onchange="applyCalib()"><input type="number" id="c2_tl_gap" value="15" step="1" onchange="applyCalib()"></div></div>
+      <div class="calib-row"><div class="cr-lbl">Left tilt drift</div><div class="f3"><input type="number" id="c2_lt_min" value="30" step="1" onchange="applyCalib()"><input type="number" id="c2_lt_max" value="80" step="1" onchange="applyCalib()"><input type="number" id="c2_lt_gap" value="20" step="1" onchange="applyCalib()"></div></div>
+      <div class="calib-row"><div class="cr-lbl">Right tilt drift</div><div class="f3"><input type="number" id="c2_rt_min" value="30" step="1" onchange="applyCalib()"><input type="number" id="c2_rt_max" value="80" step="1" onchange="applyCalib()"><input type="number" id="c2_rt_gap" value="20" step="1" onchange="applyCalib()"></div></div>
+    </div>
+
+    <!-- L3 -->
+    <div class="calib-lvl-panel" id="clp3">
+      <div class="calib-row"><div class="cr-lbl">Speed drift km/h</div><div class="f3"><input type="number" id="c3_sd_min" value="10" step="1" onchange="applyCalib()"><input type="number" id="c3_sd_max" value="15" step="1" onchange="applyCalib()"><input type="number" id="c3_sd_gap" value="5" step="1" onchange="applyCalib()"></div></div>
+      <div class="calib-row"><div class="cr-lbl">Length delta cm</div><div class="f3"><input type="number" id="c3_ld_min" value="45" step="1" onchange="applyCalib()"><input type="number" id="c3_ld_max" value="55" step="1" onchange="applyCalib()"><input type="number" id="c3_ld_gap" value="15" step="1" onchange="applyCalib()"></div></div>
+      <div class="calib-row"><div class="cr-lbl">Line delta cm</div><div class="f3"><input type="number" id="c3_li_min" value="35" step="1" onchange="applyCalib()"><input type="number" id="c3_li_max" value="45" step="1" onchange="applyCalib()"><input type="number" id="c3_li_gap" value="12" step="1" onchange="applyCalib()"></div></div>
+      <div class="calib-row"><div class="cr-lbl">RPM drift</div><div class="f3"><input type="number" id="c3_rpm_min" value="15" step="1" onchange="applyCalib()"><input type="number" id="c3_rpm_max" value="40" step="1" onchange="applyCalib()"><input type="number" id="c3_rpm_gap" value="10" step="1" onchange="applyCalib()"></div></div>
+      <div class="calib-row"><div class="cr-lbl">Tilt drift</div><div class="f3"><input type="number" id="c3_tl_min" value="40" step="1" onchange="applyCalib()"><input type="number" id="c3_tl_max" value="100" step="1" onchange="applyCalib()"><input type="number" id="c3_tl_gap" value="20" step="1" onchange="applyCalib()"></div></div>
+      <div class="calib-row"><div class="cr-lbl">Left tilt drift</div><div class="f3"><input type="number" id="c3_lt_min" value="60" step="1" onchange="applyCalib()"><input type="number" id="c3_lt_max" value="150" step="1" onchange="applyCalib()"><input type="number" id="c3_lt_gap" value="30" step="1" onchange="applyCalib()"></div></div>
+      <div class="calib-row"><div class="cr-lbl">Right tilt drift</div><div class="f3"><input type="number" id="c3_rt_min" value="60" step="1" onchange="applyCalib()"><input type="number" id="c3_rt_max" value="150" step="1" onchange="applyCalib()"><input type="number" id="c3_rt_gap" value="30" step="1" onchange="applyCalib()"></div></div>
+      <div class="calib-row" style="margin-top:6px;padding-top:6px;border-top:1px solid var(--border)">
+        <div class="cr-lbl">Swing delta (L3)  { min · max · minGap }</div>
+        <div class="f3"><input type="number" id="c3_sw_min" value="1" step="1" onchange="applyCalib()"><input type="number" id="c3_sw_max" value="2" step="1" onchange="applyCalib()"><input type="number" id="c3_sw_gap" value="1" step="1" onchange="applyCalib()"></div>
+      </div>
+      <div class="calib-row">
+        <div class="cr-lbl">Spin delta (L3)  { min · max · minGap }</div>
+        <div class="f3"><input type="number" id="c3_sp_min" value="1" step="1" onchange="applyCalib()"><input type="number" id="c3_sp_max" value="2" step="1" onchange="applyCalib()"><input type="number" id="c3_sp_gap" value="1" step="1" onchange="applyCalib()"></div>
+      </div>
+    </div>
+
+    <div class="calib-note" style="margin-top:8px">All values TBC — fill after machine calibration tests</div>
+  </div>
+
+  <div class="sep"></div>
+  <button class="run-btn" id="runBtn" onclick="run()">Generate Session</button>
+</div>
+
+<!-- CENTRE: pitch -->
+<div class="centre">
+  <div style="font-size:10px;font-weight:700;letter-spacing:2px;text-transform:uppercase;color:var(--muted);margin-bottom:18px;text-align:center">Pitch Map</div>
+  <div style="display:flex;justify-content:space-between;width:200px;font-family:var(--mono);font-size:9px;color:var(--dim);margin-bottom:4px">
+    <span>LEG  X=0</span><span>X=300  OFF</span>
+  </div>
+  <div class="pitch-wrap">
+    <div class="pitch" id="pitch">
+      <div class="pitch-strip"></div>
+      <div class="crease batting"></div>
+      <div class="crease bowling"></div>
+      <div class="gl-zone"></div>
+      <div class="dot base" id="baseDot"></div>
+    </div>
+    <div class="pitch-axis-y">
+      <span>Y=5  full</span><span>Y=35 good</span><span>Y=55 back</span><span>Y=80 short</span>
+    </div>
+  </div>
+  <div class="pitch-axis-x" style="width:200px;margin-top:5px"><span>0</span><span>150</span><span>300</span></div>
+  <div class="pitch-legend" style="width:200px">
+    <div class="legend-row"><div class="legend-dot" style="background:var(--blue);box-shadow:0 0 6px var(--blue)"></div>Base ball position</div>
+    <div class="legend-row"><div class="legend-dot" style="background:var(--blue);opacity:.35;border:1px solid var(--blue)"></div>Default ball</div>
+    <div class="legend-row"><div class="legend-dot" style="background:var(--amber);box-shadow:0 0 6px var(--amber)"></div>Variation ball</div>
+    <div class="legend-row"><div class="legend-dot" style="background:var(--green);box-shadow:0 0 6px var(--green)"></div>Selected ball</div>
+    <div style="margin-top:4px;font-family:var(--mono);font-size:9px;color:var(--dim);border-top:1px solid var(--border);padding-top:6px">Dashed box = good length zone (Y 35–55)</div>
+  </div>
+  <div class="pitch-stats" style="width:200px">
+    <div class="pstat g"><div class="psv" id="psBalls">—</div><div class="psl">Balls</div></div>
+    <div class="pstat a"><div class="psv" id="psVars">—</div><div class="psl">Variation</div></div>
+    <div class="pstat b"><div class="psv" id="psLevel">—</div><div class="psl">Level</div></div>
+    <div class="pstat"><div class="psv" id="psSeed" style="font-size:11px">—</div><div class="psl">Seed</div></div>
+  </div>
+</div>
+
+<!-- RIGHT: output -->
+<div class="right-panel">
+  <div class="empty" id="emptyState">
+    <div class="ei">🎯</div>
+    <p>Place <code>BowlingMachineController.js</code> and <code>bowling_data.json</code><br>in the same folder, then Generate Session.</p>
+  </div>
+  <div class="loading" id="loadingEl">
+    <div class="spinner"></div>
+    <p>Computing all ball configs…</p>
+    <small id="loadDetail"></small>
+  </div>
+  <div id="resultArea" style="display:none">
+    <div class="meta-strip">
+      <div class="ms g"><div class="msv" id="mBalls">—</div><div class="msl">Balls</div></div>
+      <div class="ms"><div class="msv" id="mOvers">—</div><div class="msl">Overs</div></div>
+      <div class="ms b"><div class="msv" id="mVars">—</div><div class="msl">Variation</div></div>
+      <div class="ms"><div class="msv" id="mLevel">—</div><div class="msl">Level</div></div>
+      <div class="ms"><div class="msv" id="mSeed" style="font-size:10px;word-break:break-all">—</div><div class="msl">Seed</div></div>
+    </div>
+    <div class="toolbar">
+      <div class="sid" id="sidLabel"></div>
+      <button class="dl-btn" onclick="dlSession()">⬇ Download JSON</button>
+    </div>
+    <div id="oversArea"></div>
+    <div class="drawer" id="drawer">
+      <div class="dh"><h3 id="dTitle">Ball Detail</h3><button class="cx" onclick="closeDrawer()">✕</button></div>
+      <div class="db">
+        <div class="chip-row" id="dParams"></div>
+        <div class="qrow" id="dQuality"></div>
+        <div class="mcg" id="dMC"></div>
+        <div class="jw"><button class="jcopy" onclick="copyJSON()">copy</button><div class="jblk" id="dJSON"></div></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+</div>
+</div>
+
+<script>
+let ctrl = null, session = null, selBall = null, selLevel = 2;
+
+const TYPE_LABEL = {
+  default:'Default',length_shift:'Length + Line',straight_ball:'Straight + Line',
+  length_and_line:'Length + Line',straight_and_line:'Straight + Line',
+  length_spin_swap:'Length + Spin Swap',length_line_heavy:'Length + Line (Heavy)',
+  opp_turn_light:'Opp-Turn Light',opp_turn_heavy_swing:'Opp-Turn + Swing',
+  swing_change:'Swing Change',spin_intensity_shift:'Spin Intensity',
+  opp_turn_heavy:'Opp-Turn Heavy',same_side_alt:'Same-Side Alt',
+};
+
+function xPct(x){ return (Math.max(0,Math.min(300,x))/300)*100; }
+function yPct(y){ return ((Math.max(5,Math.min(80,y))-5)/75)*100; }
+
+function updateBaseDot(){
+  const x=+document.getElementById('xVal').value;
+  const y=+document.getElementById('yVal').value;
+  const d=document.getElementById('baseDot');
+  d.style.left=xPct(x)+'%'; d.style.top=yPct(y)+'%';
+}
+
+function clearSessionDots(){ document.querySelectorAll('.dot:not(.base)').forEach(d=>d.remove()); }
+
+function plotSessionDots(balls){
+  const pitch=document.getElementById('pitch');
+  clearSessionDots();
+  for(const ball of balls){
+    const d=document.createElement('div');
+    d.className='dot '+(ball.isVariation?'var-dot':'def-dot');
+    d.style.left=xPct(ball.params.x)+'%';
+    d.style.top=yPct(ball.params.y)+'%';
+    d.title=`Ball ${ball.ballIndex} · ${TYPE_LABEL[ball.ballType]||ball.ballType}`;
+    d.onclick=()=>openDrawer(ball);
+    d.style.pointerEvents='auto'; d.style.cursor='pointer';
+    pitch.appendChild(d);
+  }
+}
+
+function highlightDot(ball){
+  document.querySelectorAll('.dot.sel-dot').forEach(d=>d.classList.remove('sel-dot'));
+  const all=document.querySelectorAll('.dot:not(.base)');
+  if(all[ball.ballIndex-1]) all[ball.ballIndex-1].classList.add('sel-dot');
+}
+
+// ── Calibration UI helpers ────────────────────────────────────────
+let calibOpen = false;
+
+function toggleCalib(){
+  calibOpen = !calibOpen;
+  document.getElementById('calibBody').classList.toggle('open', calibOpen);
+  document.getElementById('calibToggle').classList.toggle('open', calibOpen);
+  document.getElementById('calibArrow').textContent = calibOpen ? '▴' : '▾';
+}
+
+let calibLevelShown = 1;
+function setCalibLevel(l){
+  calibLevelShown = l;
+  document.querySelectorAll('.ctab').forEach(t=>t.classList.toggle('on',+t.dataset.cl===l));
+  document.querySelectorAll('.calib-lvl-panel').forEach((p,i)=>p.classList.toggle('on',i+1===l));
+}
+
+// Read all calibration inputs and push to controller
+function applyCalib(){
+  if(!ctrl) return;
+  const n = id => parseFloat(document.getElementById(id).value)||0;
+  ctrl.loadCalibrationData({
+    X_UNITS_PER_CM: n('calX') || 0.2,
+    Y_UNITS_PER_CM: n('calY') || 0.5,
+
+    speedDrift: {
+      1: { min:n('c1_sd_min'), max:n('c1_sd_max'), minGap:n('c1_sd_gap') },
+      2: { min:n('c2_sd_min'), max:n('c2_sd_max'), minGap:n('c2_sd_gap') },
+      3: { min:n('c3_sd_min'), max:n('c3_sd_max'), minGap:n('c3_sd_gap') },
+    },
+    lengthDelta: {
+      1: { min:n('c1_ld_min'), max:n('c1_ld_max'), minGap:n('c1_ld_gap') },
+      2: { min:n('c2_ld_min'), max:n('c2_ld_max'), minGap:n('c2_ld_gap') },
+      3: { min:n('c3_ld_min'), max:n('c3_ld_max'), minGap:n('c3_ld_gap') },
+    },
+    lineDelta: {
+      1: { min:n('c1_li_min'), max:n('c1_li_max'), minGap:n('c1_li_gap') },
+      2: { min:n('c2_li_min'), max:n('c2_li_max'), minGap:n('c2_li_gap') },
+      3: { min:n('c3_li_min'), max:n('c3_li_max'), minGap:n('c3_li_gap') },
+    },
+    rpmDrift: {
+      1: { min:n('c1_rpm_min'), max:n('c1_rpm_max'), minGap:n('c1_rpm_gap') },
+      2: { min:n('c2_rpm_min'), max:n('c2_rpm_max'), minGap:n('c2_rpm_gap') },
+      3: { min:n('c3_rpm_min'), max:n('c3_rpm_max'), minGap:n('c3_rpm_gap') },
+    },
+    tiltDrift: {
+      1: { min:n('c1_tl_min'), max:n('c1_tl_max'), minGap:n('c1_tl_gap') },
+      2: { min:n('c2_tl_min'), max:n('c2_tl_max'), minGap:n('c2_tl_gap') },
+      3: { min:n('c3_tl_min'), max:n('c3_tl_max'), minGap:n('c3_tl_gap') },
+    },
+    leftTiltDrift: {
+      1: { min:n('c1_lt_min'), max:n('c1_lt_max'), minGap:n('c1_lt_gap') },
+      2: { min:n('c2_lt_min'), max:n('c2_lt_max'), minGap:n('c2_lt_gap') },
+      3: { min:n('c3_lt_min'), max:n('c3_lt_max'), minGap:n('c3_lt_gap') },
+    },
+    rightTiltDrift: {
+      1: { min:n('c1_rt_min'), max:n('c1_rt_max'), minGap:n('c1_rt_gap') },
+      2: { min:n('c2_rt_min'), max:n('c2_rt_max'), minGap:n('c2_rt_gap') },
+      3: { min:n('c3_rt_min'), max:n('c3_rt_max'), minGap:n('c3_rt_gap') },
+    },
+    swingDelta: { min:n('c3_sw_min'), max:n('c3_sw_max'), minGap:n('c3_sw_gap') },
+    spinDelta:  { min:n('c3_sp_min'), max:n('c3_sp_max'), minGap:n('c3_sp_gap') },
+  });
+}
+
+// ── Boot ────────────────────────────────────────────────────────
+function boot(){
+  if(typeof BowlingMachineController==='undefined'){
+    showErr('BowlingMachineController.js not found — place it in the same folder.');
+    setBadge(false,'controller missing'); return;
+  }
+  ctrl = new BowlingMachineController();
+  applyCalib();
+  ctrl.ensureDataLoaded().then(()=>setBadge(true)).catch(e=>setBadge(false,e.message));
+}
+
+function setBadge(ok,detail){
+  const sp=document.getElementById('jsonBadge').querySelector('span');
+  sp.textContent=ok?'loaded ✓':'error: '+detail;
+  sp.className=ok?'ok':'err';
+}
+
+function showErr(msg){ document.getElementById('errMsg').textContent=msg; document.getElementById('errBar').classList.add('on'); }
+function clearErr(){ document.getElementById('errBar').classList.remove('on'); }
+
+function setLevel(l){
+  selLevel=l;
+  document.querySelectorAll('.lb').forEach(b=>b.classList.toggle('on',+b.dataset.l===l));
+}
+
+function onToggle(){
+  const on=document.getElementById('isRandom').checked;
+  document.getElementById('lvlSec').style.opacity=on?'1':'.35';
+  document.querySelectorAll('.lb').forEach(b=>b.disabled=!on);
+  document.getElementById('modeBadge').querySelector('span').textContent=on?'random · L'+selLevel:'non-random';
+}
+
+document.getElementById('xVal').addEventListener('input',updateBaseDot);
+document.getElementById('yVal').addEventListener('input',updateBaseDot);
+
+// ── Run ──────────────────────────────────────────────────────────
+async function run(){
+  clearErr();
+  if(!ctrl){ showErr('Controller not loaded.'); return; }
+
+  const ballConfig={
+    speed:     parseInt(document.getElementById('speed').value),
+    x:         parseFloat(document.getElementById('xVal').value),
+    y:         parseFloat(document.getElementById('yVal').value),
+    swingLevel:parseInt(document.getElementById('swingLevel').value),
+    spinLevel: parseInt(document.getElementById('spinLevel').value),
+  };
+  const sessionOptions={
+    isRandom:    document.getElementById('isRandom').checked,
+    randomLevel: selLevel,
+    totalBalls:  Math.min(135,Math.max(1,parseInt(document.getElementById('totalBalls').value)||18)),
+  };
+
+  applyCalib();
+  const btn=document.getElementById('runBtn');
+  btn.disabled=true; btn.textContent='Generating…';
+  document.getElementById('emptyState').style.display='none';
+  document.getElementById('resultArea').style.display='none';
+  document.getElementById('loadingEl').classList.add('on');
+  document.getElementById('loadDetail').textContent=
+    `speed:${ballConfig.speed} x:${ballConfig.x} y:${ballConfig.y} | isRandom:${sessionOptions.isRandom} level:${sessionOptions.randomLevel} balls:${sessionOptions.totalBalls}`;
+  clearSessionDots();
+
+  try{
+    const result=await ctrl.getSessionConfig(ballConfig,sessionOptions);
+    if(result?.error){
+      showErr('Controller error: '+result.error);
+      document.getElementById('loadingEl').classList.remove('on');
+      document.getElementById('emptyState').style.display='block';
+    }else{
+      session=result; renderSession();
+    }
+  }catch(e){
+    showErr('Error: '+e.message);
+    document.getElementById('loadingEl').classList.remove('on');
+    document.getElementById('emptyState').style.display='block';
+  }finally{
+    btn.disabled=false; btn.textContent='Generate Session';
+  }
+}
+
+// ── Render ───────────────────────────────────────────────────────
+function renderSession(){
+  const s=session;
+  document.getElementById('loadingEl').classList.remove('on');
+  document.getElementById('resultArea').style.display='block';
+  const vc=s.balls.filter(b=>b.isVariation).length;
+  const seedHex=(s.seed>>>0).toString(16).padStart(8,'0');
+  document.getElementById('mBalls').textContent=s.totalBalls;
+  document.getElementById('mOvers').textContent=s.overs;
+  document.getElementById('mVars').textContent=vc;
+  document.getElementById('mLevel').textContent=s.isRandom?'L'+s.randomLevel:'OFF';
+  document.getElementById('mSeed').textContent=seedHex;
+  document.getElementById('sidLabel').textContent=s.sessionId;
+  document.getElementById('psBalls').textContent=s.totalBalls;
+  document.getElementById('psVars').textContent=vc;
+  document.getElementById('psLevel').textContent=s.isRandom?'L'+s.randomLevel:'OFF';
+  document.getElementById('psSeed').textContent=seedHex;
+  document.getElementById('modeBadge').querySelector('span').textContent=
+    s.isRandom?'random · L'+s.randomLevel:'non-random';
+  plotSessionDots(s.balls);
+  const byOver={};
+  for(const b of s.balls)(byOver[b.overNum]=byOver[b.overNum]||[]).push(b);
+  const area=document.getElementById('oversArea');
+  area.innerHTML='';
+  for(const [on,balls] of Object.entries(byOver)){
+    const ovc=balls.filter(b=>b.isVariation).length;
+    const blk=document.createElement('div');
+    blk.className='over-blk';
+    blk.innerHTML=`<div class="over-hdr">OVER <span class="on">${on}</span>${ovc?`<span class="vb">${ovc} var</span>`:''}</div>`;
+    const brow=document.createElement('div');
+    brow.className='balls';
+    for(const ball of balls){
+      const p=ball.params;
+      const el=document.createElement('div');
+      el.className='bc'+(ball.isVariation?' var':'');
+      const spin=p.spin>=0?`+${p.spin}`:`${p.spin}`;
+      const swing=p.swing!==0?(p.swing>=0?`+${p.swing}`:`${p.swing}`):'';
+      el.innerHTML=`
+        <div class="bcn">Ball ${ball.ballInOver}</div>
+        <div class="bct">${TYPE_LABEL[ball.ballType]||ball.ballType}</div>
+        <div class="bcs">${p.speed}<small> km/h</small></div>
+        <div class="bcsp">spin ${spin}</div>
+        ${swing?`<div class="bcsw">swing ${swing}</div>`:''}
+        <span class="bctag ${ball.matchType==='exact'?'exact':'interp'}">${ball.matchType}</span>
+      `;
+      el.onclick=()=>openDrawer(ball);
+      brow.appendChild(el);
+    }
+    blk.appendChild(brow); area.appendChild(blk);
+  }
+  closeDrawer();
+}
+
+// ── Drawer ───────────────────────────────────────────────────────
+function openDrawer(ball){
+  selBall=ball;
+  const mc=ball.machineConfig, p=ball.params;
+  const base=session?.balls?.find(b=>!b.isVariation)?.params;
+  document.getElementById('dTitle').textContent=
+    `Over ${ball.overNum} · Ball ${ball.ballInOver}  —  ${TYPE_LABEL[ball.ballType]||ball.ballType}`;
+  const chg=k=>ball.isVariation&&base&&p[k]!==base[k];
+  document.getElementById('dParams').innerHTML=[
+    ['speed',`${p.speed} km/h`],['x',`${p.x}`],['y',`${p.y}`],
+    ['swing',`${p.swing>=0?'+':''}${p.swing}`],['spin',`${p.spin>=0?'+':''}${p.spin}`],
+  ].map(([k,v])=>`<div class="chip${chg(k)?' chg':''}"><span class="ck">${k}</span><span class="cv">${v}</span></div>`).join('')+
+  `<div class="chip"><span class="ck">type</span><span class="cv" style="color:${ball.isVariation?'var(--amber)':'var(--muted)'}">${ball.isVariation?'variation':'default'}</span></div>`;
+  const acc=ball.accuracy??0, conf=ball.confidence??0;
+  document.getElementById('dQuality').innerHTML=`
+    <div class="qi"><div class="ql">Accuracy</div><div class="qbar"><div class="qfill g" style="width:${acc}%"></div></div><div class="qn">${acc}%</div></div>
+    <div class="qi"><div class="ql">Confidence</div><div class="qbar"><div class="qfill b" style="width:${conf}%"></div></div><div class="qn">${conf}%</div></div>
+    <div class="qi"><div class="ql">Match</div><div class="qn" style="font-size:12px;margin-top:5px">${ball.matchType}</div></div>
+  `;
+  document.getElementById('dMC').innerHTML=`
+    <div class="mcc hi"><div class="ml">Pan</div><div class="mv">${mc.pan}</div><div class="ma">↳ ${mc.panActual}</div></div>
+    <div class="mcc hi"><div class="ml">Tilt</div><div class="mv">${mc.tilt}</div><div class="ma">↳ ${mc.tiltActual}</div></div>
+    <div class="mcc hi2"><div class="ml">Left Tilt</div><div class="mv">${mc.leftTilt}</div><div class="ma">↳ ${mc.leftTiltActual}</div></div>
+    <div class="mcc hi2"><div class="ml">Right Tilt</div><div class="mv">${mc.rightTilt}</div><div class="ma">↳ ${mc.rightTiltActual}</div></div>
+    <div class="mcc"><div class="ml">RPM L/R</div><div class="mv" style="font-size:14px">${mc.leftRPM}<span style="opacity:.35"> / </span>${mc.rightRPM}</div><div class="ma">Δ ${Math.abs(mc.leftRPM-mc.rightRPM)}</div></div>
+  `;
+  document.getElementById('dJSON').innerHTML=syntaxHL(JSON.stringify({
+    ballIndex:ball.ballIndex,overNum:ball.overNum,ballInOver:ball.ballInOver,
+    ballType:ball.ballType,isVariation:ball.isVariation,
+    params:ball.params,machineConfig:ball.machineConfig,
+    matchType:ball.matchType,accuracy:ball.accuracy,confidence:ball.confidence
+  },null,2));
+  document.querySelectorAll('.bc').forEach(c=>c.classList.remove('sel'));
+  document.querySelectorAll('.bc')[ball.ballIndex-1]?.classList.add('sel');
+  highlightDot(ball);
+  const dr=document.getElementById('drawer');
+  dr.classList.add('open');
+  dr.scrollIntoView({behavior:'smooth',block:'nearest'});
+}
+
+function closeDrawer(){
+  document.getElementById('drawer').classList.remove('open');
+  document.querySelectorAll('.bc').forEach(c=>c.classList.remove('sel'));
+  document.querySelectorAll('.dot.sel-dot').forEach(d=>d.classList.remove('sel-dot'));
+  selBall=null;
+}
+
+function copyJSON(){
+  if(!selBall) return;
+  navigator.clipboard.writeText(JSON.stringify(selBall,null,2)).catch(()=>{});
+  const b=document.querySelector('.jcopy');
+  b.textContent='copied!'; setTimeout(()=>b.textContent='copy',1600);
+}
+
+function dlSession(){
+  if(!session) return;
+  const a=document.createElement('a');
+  a.href=URL.createObjectURL(new Blob([JSON.stringify(session,null,2)],{type:'application/json'}));
+  a.download=session.sessionId+'.json'; a.click();
+}
+
+function syntaxHL(json){
+  return json
+    .replace(/("([^"]+)")\s*:/g,'<span class="jk">"$2"</span>:')
+    .replace(/:\s*("([^"]*)")/g,': <span class="jstr">"$2"</span>')
+    .replace(/:\s*(-?\d+\.?\d*)/g,': <span class="jnum">$1</span>')
+    .replace(/:\s*(true|false)/g,': <span class="jboo">$1</span>');
+}
+
+boot(); updateBaseDot(); onToggle();
+</script>
+</body>
+</html>
