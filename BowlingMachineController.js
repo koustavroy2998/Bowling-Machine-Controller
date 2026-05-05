@@ -1,28 +1,3 @@
-/**
- * BowlingMachineController
- *
- * CHANGES FROM PREVIOUS VERSION
- * ─────────────────────────────────────────────────────────────────────────────
- * 1. SYMMETRIC X DRIFT  ★ BUG FIX
- *    lineDelta min/max now represent MAGNITUDE only.
- *    The sign (+/-) is always chosen independently and randomly for every ball,
- *    so X shifts both LEFT and RIGHT of the default value.
- *    Larger magnitude (higher level or higher lineDelta) → wider deflection.
- *    This applies consistently across every ball type that moves X.
- *
- * 2. PER-SPEED CALIBRATION
- *    All drift/delta fields now support an optional per-speed override:
- *      calibration.rpmDrift[speed][level]   → specific range for that speed
- *      calibration.rpmDrift._default[level] → fallback for all speeds
- *    _getCalRange(field, speed, level) resolves the correct range automatically.
- *    Use loadCalibrationData() to push observed values in after machine testing.
- *
- * 3. _applyMachineValueDrift now receives the ball's actual speed so it can
- *    pick speed-specific drift ranges.
- *
- * Everything else — getMachineConfig, interpolation, caching, safety clamps,
- * speed groups, over planner, RNG — is UNCHANGED.
- */
 class BowlingMachineController {
   constructor() {
     this.jsonData = null;
@@ -117,8 +92,8 @@ class BowlingMachineController {
     // ─────────────────────────────────────────────────────────────────────────
     this.calibration = {
       // Unit scalars (set via machine measurement)
-      X_UNITS_PER_CM: 0.75,   // TBC — lateral units per cm
-      Y_UNITS_PER_CM: 0.083,  // TBC — longitudinal units per cm
+      X_UNITS_PER_CM: 1.15,   // TBC — lateral units per cm
+      Y_UNITS_PER_CM: 0.5,  // TBC — longitudinal units per cm
 
       // ── Speed drift (km/h, variation balls only) ──────────────────────────
       speedDrift: {
@@ -146,7 +121,7 @@ class BowlingMachineController {
       //  null at L1 for ball types that have no line shift at all.
       lineDelta: {
         _default: {
-          1: { min: 15, max: 25, minGap: 8 },
+          1: { min: 20, max: 32, minGap: 10},
           2: { min: 25, max: 35, minGap: 10 },
           3: { min: 35, max: 45, minGap: 12 },
         },
@@ -212,29 +187,6 @@ class BowlingMachineController {
     return entry[speed]?.[level] ?? entry._default?.[level] ?? null;
   }
 
-  // ═══════════════════════════════════════════════════════════════════════════
-  //  loadCalibrationData
-  //
-  //  Call this after filling the Excel sheet with observed machine values.
-  //  No restart needed — takes effect immediately.
-  //
-  //  Each drift field accepts either:
-  //    (a) Full object:   { _default:{1:{…},2:{…},3:{…}}, 60:{…}, 110:{…} }
-  //    (b) Legacy object: { 1:{…}, 2:{…}, 3:{…} }  → treated as new _default
-  //
-  //  Example after testing at 110 km/h:
-  //    controller.loadCalibrationData({
-  //      X_UNITS_PER_CM: 0.82,
-  //      Y_UNITS_PER_CM: 0.091,
-  //      rpmDrift: {
-  //        _default: { 1:{min:5,max:12,minGap:4}, 2:{min:10,max:22,minGap:7}, 3:{min:15,max:35,minGap:9} },
-  //        110:      { 1:{min:4,max:10,minGap:4}, 2:{min:8, max:20,minGap:6}, 3:{min:12,max:30,minGap:8} },
-  //      },
-  //      lineDelta: {
-  //        _default: { 1:{min:12,max:22,minGap:7}, 2:{min:22,max:32,minGap:9}, 3:{min:30,max:42,minGap:11} },
-  //      },
-  //    });
-  // ═══════════════════════════════════════════════════════════════════════════
   loadCalibrationData(data) {
     const driftFields = [
       'speedDrift', 'lengthDelta', 'lineDelta',
@@ -276,7 +228,8 @@ class BowlingMachineController {
   // ═══════════════════════════════════════════════════════════════════════════
   async getSessionConfig(ballConfig, sessionOptions = {}) {
     const { speed, x, y, swingLevel, spinLevel } = ballConfig;
-    const isRandom = sessionOptions.isRandom ?? false;
+    const isAllRandom = sessionOptions.isAllRandom ?? false;
+    const isRandom = (sessionOptions.isRandom ?? false) || isAllRandom;
     const randomLevel = sessionOptions.randomLevel ?? 1;
     const totalBalls = Math.min(135, Math.max(1, sessionOptions.totalBalls ?? 135));
 
@@ -329,8 +282,10 @@ class BowlingMachineController {
     const balls = [];
 
     for (let i = 0; i < totalBalls; i++) {
-      const isVarBall = overVarSlots.includes(ballInOver);
-      const ballType = isVarBall ? overVarTypes[ballInOver] : 'default';
+      const isVarBall = isAllRandom || overVarSlots.includes(ballInOver);
+      const ballType = isAllRandom
+        ? this._pickAllRandomType(rng, randomLevel, varTypeHistory)
+        : (isVarBall ? overVarTypes[ballInOver] : 'default');
 
       let params, machineConfig, matchType, accuracy, confidence;
 
@@ -381,7 +336,7 @@ class BowlingMachineController {
     }
 
     return {
-      sessionId, seed: sessionSeed, isRandom: true, randomLevel,
+      sessionId, seed: sessionSeed, isRandom: true, randomLevel, isAllRandom,
       totalBalls, overs: Math.ceil(totalBalls / 6), balls,
     };
   }
@@ -409,6 +364,18 @@ class BowlingMachineController {
   }
 
   // ── Over planner (unchanged) ──────────────────────────────────────────────
+  _pickAllRandomType(rng, level, history) {
+    const pools = {
+      1: ['length_shift', 'straight_ball'],
+      2: ['length_and_line', 'straight_and_line', 'length_spin_swap'],
+      3: ['length_line_heavy', 'straight_and_line', 'opp_turn_light',
+          'opp_turn_heavy_swing', 'swing_change', 'spin_intensity_shift'],
+    };
+    const pool = pools[level] ?? pools[1];
+    const fresh = pool.filter(t => !history.slice(-2).includes(t));
+    return rng.pick(fresh.length ? fresh : pool);
+  }
+
   _planOver(rng, level, baseSpin, oversSinceHeavy, varTypeHistory) {
     const varCount = level === 1 ? rng.int(1, 2) : level === 2 ? 2 : rng.int(2, 3);
 

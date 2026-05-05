@@ -115,7 +115,7 @@ body::before{content:'';position:fixed;inset:0;
 
 /* Calib row: label + 3 inputs */
 .calib-row{margin-bottom:8px}
-.calib-row .cr-lbl{font-size:9px;color:var(--dim);font-family:var(--mono);
+.calib-row .cr-lbl{font-size:9px;color:var(--text);font-family:var(--mono);
   letter-spacing:.5px;text-transform:uppercase;margin-bottom:4px}
 .calib-note{font-size:9px;color:var(--amber);font-family:var(--mono);margin-top:3px}
 
@@ -283,8 +283,8 @@ body::before{content:'';position:fixed;inset:0;
     </div>
   </div>
   <div class="f2">
-    <div class="field"><label>x (0–300)</label><input type="number" id="xVal" value="220" min="0" max="300"></div>
-    <div class="field"><label>y (5–80)</label><input type="number" id="yVal" value="35" min="5" max="80"></div>
+    <div class="field"><label>x (0–300)</label><input type="number" id="xVal" value="150" min="0" max="300"></div>
+    <div class="field"><label>y (5–80)</label><input type="number" id="yVal" value="40" min="5" max="80"></div>
   </div>
   <div class="f2">
     <div class="field"><label>swingLevel (−5–+5)</label><input type="number" id="swingLevel" value="0" min="-5" max="5"></div>
@@ -298,6 +298,14 @@ body::before{content:'';position:fixed;inset:0;
     <span class="tl">isRandom</span>
     <label class="tog">
       <input type="checkbox" id="isRandom" checked onchange="onToggle()">
+      <span class="tog-t"></span>
+    </label>
+  </div>
+
+  <div class="tog-row">
+    <span class="tl" style="display:flex;flex-direction:column;gap:2px">isAllRandom<small style="font-size:9px;color:var(--muted);font-family:var(--mono);font-weight:400">every ball varied</small></span>
+    <label class="tog">
+      <input type="checkbox" id="isAllRandom" onchange="onToggleAllRandom()">
       <span class="tog-t"></span>
     </label>
   </div>
@@ -325,7 +333,7 @@ body::before{content:'';position:fixed;inset:0;
     <div class="f2" style="margin-bottom:10px">
       <div class="field">
         <label>X units/cm</label>
-        <input type="number" id="calX" value="0.2" step="0.01" min="0.01" onchange="applyCalib()">
+        <input type="number" id="calX" value="1.145" step="0.001" min="0.001" onchange="applyCalib()">
       </div>
       <div class="field">
         <label>Y units/cm</label>
@@ -362,9 +370,9 @@ body::before{content:'';position:fixed;inset:0;
       <div class="calib-row">
         <div class="cr-lbl">Line delta cm  { min · max · minGap }</div>
         <div class="f3">
-          <input type="number" id="c1_li_min" value="15" step="1" onchange="applyCalib()">
-          <input type="number" id="c1_li_max" value="25" step="1" onchange="applyCalib()">
-          <input type="number" id="c1_li_gap" value="8"  step="1" onchange="applyCalib()">
+          <input type="number" id="c1_li_min" value="20" step="1" onchange="applyCalib()">
+          <input type="number" id="c1_li_max" value="32" step="1" onchange="applyCalib()">
+          <input type="number" id="c1_li_gap" value="10" step="1" onchange="applyCalib()">
         </div>
       </div>
       <div class="calib-row">
@@ -621,6 +629,37 @@ function applyCalib(){
   });
 }
 
+// ── Populate calibration inputs from controller defaults ────────
+function populateCalibFromController(){
+  if(!ctrl) return;
+  const c = ctrl.calibration;
+  document.getElementById('calX').value = c.X_UNITS_PER_CM;
+  document.getElementById('calY').value = c.Y_UNITS_PER_CM;
+  const fields = [
+    ['speedDrift','sd'],['lengthDelta','ld'],['lineDelta','li'],
+    ['rpmDrift','rpm'],['tiltDrift','tl'],['leftTiltDrift','lt'],['rightTiltDrift','rt'],
+  ];
+  for(const [field, key] of fields){
+    for(const lvl of [1,2,3]){
+      const r = c[field]?._default?.[lvl];
+      if(!r) continue;
+      document.getElementById(`c${lvl}_${key}_min`).value = r.min;
+      document.getElementById(`c${lvl}_${key}_max`).value = r.max;
+      document.getElementById(`c${lvl}_${key}_gap`).value = r.minGap;
+    }
+  }
+  if(c.swingDelta){
+    document.getElementById('c3_sw_min').value = c.swingDelta.min;
+    document.getElementById('c3_sw_max').value = c.swingDelta.max;
+    document.getElementById('c3_sw_gap').value = c.swingDelta.minGap;
+  }
+  if(c.spinDelta){
+    document.getElementById('c3_sp_min').value = c.spinDelta.min;
+    document.getElementById('c3_sp_max').value = c.spinDelta.max;
+    document.getElementById('c3_sp_gap').value = c.spinDelta.minGap;
+  }
+}
+
 // ── Boot ────────────────────────────────────────────────────────
 function boot(){
   if(typeof BowlingMachineController==='undefined'){
@@ -628,6 +667,7 @@ function boot(){
     setBadge(false,'controller missing'); return;
   }
   ctrl = new BowlingMachineController();
+  populateCalibFromController();
   applyCalib();
   ctrl.ensureDataLoaded().then(()=>setBadge(true)).catch(e=>setBadge(false,e.message));
 }
@@ -648,9 +688,25 @@ function setLevel(l){
 
 function onToggle(){
   const on=document.getElementById('isRandom').checked;
-  document.getElementById('lvlSec').style.opacity=on?'1':'.35';
-  document.querySelectorAll('.lb').forEach(b=>b.disabled=!on);
-  document.getElementById('modeBadge').querySelector('span').textContent=on?'random · L'+selLevel:'non-random';
+  const allRandom=document.getElementById('isAllRandom').checked;
+  document.getElementById('lvlSec').style.opacity=(on||allRandom)?'1':'.35';
+  document.querySelectorAll('.lb').forEach(b=>b.disabled=!(on||allRandom));
+  _updateModeBadge();
+}
+
+function onToggleAllRandom(){
+  const allRandom=document.getElementById('isAllRandom').checked;
+  const isRandomEl=document.getElementById('isRandom');
+  if(allRandom){ isRandomEl.checked=true; isRandomEl.disabled=true; }
+  else{ isRandomEl.disabled=false; }
+  onToggle();
+}
+
+function _updateModeBadge(){
+  const allRandom=document.getElementById('isAllRandom').checked;
+  const on=document.getElementById('isRandom').checked;
+  const text=allRandom?'all-random · L'+selLevel:on?'random · L'+selLevel:'non-random';
+  document.getElementById('modeBadge').querySelector('span').textContent=text;
 }
 
 document.getElementById('xVal').addEventListener('input',updateBaseDot);
@@ -670,6 +726,7 @@ async function run(){
   };
   const sessionOptions={
     isRandom:    document.getElementById('isRandom').checked,
+    isAllRandom: document.getElementById('isAllRandom').checked,
     randomLevel: selLevel,
     totalBalls:  Math.min(135,Math.max(1,parseInt(document.getElementById('totalBalls').value)||18)),
   };
@@ -712,15 +769,16 @@ function renderSession(){
   document.getElementById('mBalls').textContent=s.totalBalls;
   document.getElementById('mOvers').textContent=s.overs;
   document.getElementById('mVars').textContent=vc;
-  document.getElementById('mLevel').textContent=s.isRandom?'L'+s.randomLevel:'OFF';
+  const modeLabel=s.isAllRandom?'all-random · L'+s.randomLevel:s.isRandom?'random · L'+s.randomLevel:'OFF';
+  document.getElementById('mLevel').textContent=modeLabel;
   document.getElementById('mSeed').textContent=seedHex;
   document.getElementById('sidLabel').textContent=s.sessionId;
   document.getElementById('psBalls').textContent=s.totalBalls;
   document.getElementById('psVars').textContent=vc;
-  document.getElementById('psLevel').textContent=s.isRandom?'L'+s.randomLevel:'OFF';
+  document.getElementById('psLevel').textContent=modeLabel;
   document.getElementById('psSeed').textContent=seedHex;
   document.getElementById('modeBadge').querySelector('span').textContent=
-    s.isRandom?'random · L'+s.randomLevel:'non-random';
+    s.isAllRandom?'all-random · L'+s.randomLevel:s.isRandom?'random · L'+s.randomLevel:'non-random';
   plotSessionDots(s.balls);
   const byOver={};
   for(const b of s.balls)(byOver[b.overNum]=byOver[b.overNum]||[]).push(b);
