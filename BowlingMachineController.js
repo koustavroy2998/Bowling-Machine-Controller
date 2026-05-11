@@ -30,6 +30,7 @@ class BowlingMachineController {
       leftRightTilt: { min: 890, max: 2000 },
       pan: { min: 2500, max: 3300 },
       tilt: { min: 2000, max: 3400 },
+      wideLine: { RHB: { min: 50, max: 170 }, LHB: { min: 130, max: 250 } },
     };
 
     this.speedGroups = [
@@ -231,10 +232,16 @@ class BowlingMachineController {
     const isAllRandom = sessionOptions.isAllRandom ?? false;
     const isRandom = (sessionOptions.isRandom ?? false) || isAllRandom;
     const randomLevel = sessionOptions.randomLevel ?? 1;
-    const totalBalls = Math.min(135, Math.max(1, sessionOptions.totalBalls ?? 135));
+    const totalBalls = Math.min(999, Math.max(1, sessionOptions.totalBalls ?? 135));
+    const handedness = sessionOptions.handedness ?? 'RHB'; // 'RHB' | 'LHB'
 
     const validation = await this._validateAndLoad(speed, x, y, swingLevel, spinLevel);
     if (validation.error) return { error: validation.error };
+
+    // Wide-safe X corridor: RHB [50–170], LHB [130–250]. Never a wide ball.
+    const xBounds = this.safety.wideLine[handedness] ?? this.safety.wideLine.RHB;
+    if (x < xBounds.min || x > xBounds.max)
+      return { error: `X=${x} would be a wide for ${handedness} (valid corridor: ${xBounds.min}–${xBounds.max})` };
 
     const sessionSeed = (Date.now() ^ Math.floor(Math.random() * 0xFFFFFFFF)) >>> 0;
     const sessionId = `ses_${Date.now()}_${sessionSeed.toString(16)}`;
@@ -260,6 +267,7 @@ class BowlingMachineController {
       }));
       return {
         sessionId, seed: sessionSeed, isRandom: false, randomLevel: null,
+        handedness, xBounds,
         totalBalls, overs: Math.ceil(totalBalls / 6), balls,
       };
     }
@@ -298,7 +306,7 @@ class BowlingMachineController {
       } else {
         // _buildBallParams now produces symmetric X drift
         params = this._buildBallParams(ballType, baseParams, rng, randomLevel);
-        params.x = Math.max(0, Math.min(300, params.x));
+        params.x = Math.max(xBounds.min, Math.min(xBounds.max, params.x));
         params.y = Math.max(5, Math.min(80, params.y));
         params.spin = Math.max(-5, Math.min(5, params.spin));
         params.swing = Math.max(-5, Math.min(5, params.swing));
@@ -337,6 +345,7 @@ class BowlingMachineController {
 
     return {
       sessionId, seed: sessionSeed, isRandom: true, randomLevel, isAllRandom,
+      handedness, xBounds,
       totalBalls, overs: Math.ceil(totalBalls / 6), balls,
     };
   }
