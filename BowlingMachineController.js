@@ -43,7 +43,11 @@ class BowlingMachineController {
       leftRightTilt: { min: 890, max: 2000 },
       pan: { min: 2500, max: 3300 },
       tilt: { min: 2000, max: 3400 },
+      wideLine: { RHB: { min: 50, max: 170 }, LHB: { min: 130, max: 250 } },
     };
+
+    // Tilt added per unit of |spinLevel| (e.g. spinLevel=5 → +250 tilt). TBC after machine tests.
+    this.spinTiltBoostPerLevel = 50;
 
     // Speed groups with PRESET CONFIGS (matching generator v5.5)
     // NOW INCLUDES: enhanced_tilt_per_level, spin_pan_effect_multiplier
@@ -507,7 +511,7 @@ class BowlingMachineController {
 
     // Pan/Tilt overlays already baked into JSON, just round and clamp
     panBase  = this.clampRange('pan', this.round1(panBase));
-    tiltBase = this.clampRange('tilt', Math.round(tiltBase));
+    tiltBase = this.clampRange('tilt', Math.round(tiltBase) + Math.abs(spinLevel) * this.spinTiltBoostPerLevel);
 
     const result = {
       pan: panBase,
@@ -691,8 +695,9 @@ class BowlingMachineController {
       // All overlays already baked into JSON, just use raw values and clamp
       let panOut   = this.clampRange('pan', this.round1(closestPosition.data.Pan));
       let panAct   = this.clampRange('pan', this.round1(closestPosition.data.Pan_actual));
-      let tiltOut  = this.clampRange('tilt', Math.round(closestPosition.data.Tilt));
-      let tiltAct  = this.clampRange('tilt', Math.round(closestPosition.data.Tilt_actual));
+      const spinTiltAdj = Math.abs(spinLevel) * this.spinTiltBoostPerLevel;
+      let tiltOut  = this.clampRange('tilt', Math.round(closestPosition.data.Tilt)      + spinTiltAdj);
+      let tiltAct  = this.clampRange('tilt', Math.round(closestPosition.data.Tilt_actual) + spinTiltAdj);
 
       // LR tilt bias is already baked into the JSON values, so just clamp
       leftTilt = this.clampLRTilt(leftTilt);

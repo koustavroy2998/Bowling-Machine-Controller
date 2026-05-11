@@ -96,6 +96,19 @@ def generate_minimal_bowling_dataset_with_rpm_map(
         'top-mid-right-7': +200
     }
 
+    # Main Tilt axis delta by Y: (pos_y - 40) * 7
+    # Higher Y → machine pitched down → higher tilt → shorter ball; lower Y → pitched up → longer ball
+    tilt_y_delta = {
+        'centre - 0':          0,   # Y=40, baseline
+        'top- 1':           -245,   # Y=5
+        'left - 2':            0,   # Y=40
+        'right - 3':           0,   # Y=40
+        'bottom - 4':       +280,   # Y=80
+        'top-mid-centre-5': -105,   # Y=25
+        'top-mid-left-6':   -105,   # Y=25
+        'top-mid-right-7':  -105    # Y=25
+    }
+
     # Speed-grouped shared knobs (PRESET CONFIGS FROM paste.txt)
     # NOW INCLUDES: enhanced_tilt_per_level, spin_pan_effect_multiplier
     SPEED_GROUPS = {
@@ -216,7 +229,7 @@ def generate_minimal_bowling_dataset_with_rpm_map(
         swing_pan_effect = swing_pan_base * swing_level  # signed
 
         base_pan = c['Pan'] + pan_delta[position]
-        base_tilt = c['Tilt']
+        base_tilt = c['Tilt'] + tilt_y_delta[position]
 
         max_offset = max(lr_tilt_delta.values())
 
