@@ -91,6 +91,11 @@ body::before{content:'';position:fixed;inset:0;
 .lb.on{border-color:var(--green);color:var(--green);background:var(--gm)}
 .lb small{display:block;font-size:9px;opacity:.65;font-weight:400}
 .lb:disabled{opacity:.3;cursor:default}
+.hb{padding:4px 12px;background:var(--s3);border:1px solid var(--border2);
+  border-radius:var(--r);cursor:pointer;font-family:var(--display);font-size:11px;
+  font-weight:600;color:var(--muted);transition:all .15s}
+.hb:hover{border-color:var(--blue);color:var(--blue)}
+.hb.on{border-color:var(--green);color:var(--green);background:var(--gm)}
 
 /* Calibration section */
 .calib-toggle{display:flex;align-items:center;justify-content:space-between;
@@ -293,6 +298,14 @@ body::before{content:'';position:fixed;inset:0;
 
   <div class="sep"></div>
   <span class="sec-label">sessionOptions</span>
+
+  <div class="tog-row">
+    <span class="tl">handedness</span>
+    <div style="display:flex;gap:6px">
+      <button class="hb on" id="btnRHB" onclick="setHandedness('RHB')" style="padding:4px 10px;font-size:11px">RHB</button>
+      <button class="hb" id="btnLHB" onclick="setHandedness('LHB')" style="padding:4px 10px;font-size:11px">LHB</button>
+    </div>
+  </div>
 
   <div class="tog-row">
     <span class="tl">isRandom</span>
@@ -520,7 +533,7 @@ body::before{content:'';position:fixed;inset:0;
 </div>
 
 <script>
-let ctrl = null, session = null, selBall = null, selLevel = 2;
+let ctrl = null, session = null, selBall = null, selLevel = 2, selHandedness = 'RHB';
 
 const TYPE_LABEL = {
   default:'Default',length_shift:'Length + Line',straight_ball:'Straight + Line',
@@ -686,6 +699,12 @@ function setLevel(l){
   document.querySelectorAll('.lb').forEach(b=>b.classList.toggle('on',+b.dataset.l===l));
 }
 
+function setHandedness(h){
+  selHandedness=h;
+  document.getElementById('btnRHB').classList.toggle('on', h==='RHB');
+  document.getElementById('btnLHB').classList.toggle('on', h==='LHB');
+}
+
 function onToggle(){
   const on=document.getElementById('isRandom').checked;
   const allRandom=document.getElementById('isAllRandom').checked;
@@ -729,6 +748,7 @@ async function run(){
     isAllRandom: document.getElementById('isAllRandom').checked,
     randomLevel: selLevel,
     totalBalls:  Math.min(135,Math.max(1,parseInt(document.getElementById('totalBalls').value)||18)),
+    handedness:  selHandedness,
   };
 
   applyCalib();

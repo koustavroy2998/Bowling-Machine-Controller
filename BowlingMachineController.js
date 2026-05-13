@@ -93,14 +93,14 @@ class BowlingMachineController {
     // ─────────────────────────────────────────────────────────────────────────
     this.calibration = {
       // Unit scalars (set via machine measurement)
-      X_UNITS_PER_CM: 1.15,   // TBC — lateral units per cm
+      X_UNITS_PER_CM: 1.18,   // TBC — lateral units per cm
       Y_UNITS_PER_CM: 0.5,  // TBC — longitudinal units per cm
 
       // ── Speed drift (km/h, variation balls only) ──────────────────────────
       speedDrift: {
         _default: {
-          1: { min: 5, max: 7, minGap: 3 },
-          2: { min: 7, max: 10, minGap: 4 },
+          1: { min: 0, max: 7, minGap: 3 },
+          2: { min: 3, max: 10, minGap: 4 },
           3: { min: 10, max: 15, minGap: 5 },
         },
         // Per-speed overrides (fill after testing):
@@ -122,9 +122,9 @@ class BowlingMachineController {
       //  null at L1 for ball types that have no line shift at all.
       lineDelta: {
         _default: {
-          1: { min: 20, max: 32, minGap: 10},
-          2: { min: 25, max: 35, minGap: 10 },
-          3: { min: 35, max: 45, minGap: 12 },
+          1: { min: 28, max: 35, minGap: 12 },
+          2: { min: 32, max: 41, minGap: 12 },
+          3: { min: 37, max: 50, minGap: 12 },
         },
       },
 
@@ -378,7 +378,7 @@ class BowlingMachineController {
       1: ['length_shift', 'straight_ball'],
       2: ['length_and_line', 'straight_and_line', 'length_spin_swap'],
       3: ['length_line_heavy', 'straight_and_line', 'opp_turn_light',
-          'opp_turn_heavy_swing', 'swing_change', 'spin_intensity_shift'],
+        'opp_turn_heavy_swing', 'swing_change', 'spin_intensity_shift'],
     };
     const pool = pools[level] ?? pools[1];
     const fresh = pool.filter(t => !history.slice(-2).includes(t));
@@ -622,7 +622,7 @@ class BowlingMachineController {
     }
 
     this._lastVarValues = {
-      speed: null,           // speed tracked separately via params
+      speed: ballSpeed,
       tilt: out.tilt,
       leftTilt: out.leftTilt,
       rightTilt: out.rightTilt,
