@@ -595,18 +595,11 @@ class BowlingMachineController {
     const PAN_MIN = this.safety.pan.min, PAN_MAX = this.safety.pan.max;
     const TLT_MIN = this.safety.tilt.min, TLT_MAX = this.safety.tilt.max;
     const LRT_MIN = this.safety.leftRightTilt.min, LRT_MAX = this.safety.leftRightTilt.max;
-    const RPM_MIN = 150, RPM_MAX = 560;
-
     // Resolve speed-specific (or default) drift ranges
-    const rpmR = this._getCalRange('rpmDrift', ballSpeed, level);
     const tltR = this._getCalRange('tiltDrift', ballSpeed, level);
     const ltrR = this._getCalRange('leftTiltDrift', ballSpeed, level);
     const rtrR = this._getCalRange('rightTiltDrift', ballSpeed, level);
 
-    if (rpmR) {
-      out.leftRPM = driftField(settings.leftRPM, rpmR, last.leftRPM, RPM_MIN, RPM_MAX);
-      out.rightRPM = driftField(settings.rightRPM, rpmR, last.rightRPM, RPM_MIN, RPM_MAX);
-    }
     if (tltR) {
       out.tilt = driftField(settings.tilt, tltR, last.tilt, TLT_MIN, TLT_MAX);
       out.tiltActual = out.tilt;
@@ -673,13 +666,11 @@ class BowlingMachineController {
       const d = Math.sqrt(Math.pow(data.X - x, 2) + Math.pow(data.Y - y, 2));
       if (d < minDistance) { minDistance = d; closestPosition = { name, data }; }
     }
-    const speedProfile = this.getSpeedRpmProfile(speed);
     const exactThreshold = speed === 110 ? 3 : 5;
     if (minDistance < exactThreshold) {
       this.metrics.exactMatches++;
-      const zeroSS = swingLevel === 0 && spinLevel === 0;
-      const lRPM = zeroSS ? Math.round(closestPosition.data.L_RPM) : this.applyRealisticSpeedRpmPattern(closestPosition.data.L_RPM, speed, speedProfile, x, y);
-      const rRPM = zeroSS ? Math.round(closestPosition.data.R_RPM) : this.applyRealisticSpeedRpmPattern(closestPosition.data.R_RPM, speed, speedProfile, x, y);
+      const lRPM = Math.round(closestPosition.data.L_RPM);
+      const rRPM = swingLevel === 0 ? lRPM : Math.round(closestPosition.data.R_RPM);
       return {
         speed, swingLevel, spinLevel, coordinates: { x, y },
         machineSettings: {
@@ -789,9 +780,9 @@ class BowlingMachineController {
     let cL = yWAvg('Left_Tilt'), cR = yWAvg('Right_Tilt');
     if (tY > 40) { const mx = this.getMaxLRTiltForY(tY, speed, swingLevel, spinLevel); if (mx) { cL = Math.min(cL, mx.maxLeft); cR = Math.min(cR, mx.maxRight); } }
     const bLR = (f) => { let tw = 0, s = 0; for (const p of best) { tw += p.w; s += p.data[f] * p.w; } return s / Math.max(1e-6, tw); };
-    const bLRPM = bLR('L_RPM'), bRRPM = bLR('R_RPM'); const zeroSS = swingLevel === 0 && spinLevel === 0;
-    const adjL = zeroSS ? Math.round(bLRPM) : this.applyRealisticSpeedRpmPattern(bLRPM, speed, sp2, tX, tY);
-    const adjR = zeroSS ? Math.round(bRRPM) : this.applyRealisticSpeedRpmPattern(bRRPM, speed, sp2, tX, tY);
+    const bLRPM = bLR('L_RPM'), bRRPM = bLR('R_RPM');
+    const adjL = Math.round(bLRPM);
+    const adjR = swingLevel === 0 ? adjL : Math.round(bRRPM);
     panBase = this.clampRange('pan', this.round1(panBase)); tiltBase = this.clampRange('tilt', Math.round(tiltBase));
     const result = { pan: panBase, panActual: panBase, tilt: tiltBase, tiltActual: tiltBase, leftTilt: Math.round(this.clampLRTilt(cL)), leftTiltActual: Math.round(this.clampLRTilt(cL)), rightTilt: Math.round(this.clampLRTilt(cR)), rightTiltActual: Math.round(this.clampLRTilt(cR)), leftRPM: adjL, rightRPM: adjR, usedPoints: best.length, accuracy: this.calculateAccuracyScore(best, tX, tY), confidence: this.calculateConfidenceScore(best, tol), avgDistance: best.reduce((s, p) => s + p.distance, 0) / best.length };
     this.setCachedResult(ck, result); return result;
