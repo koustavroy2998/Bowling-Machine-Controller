@@ -238,10 +238,9 @@ class BowlingMachineController {
     const validation = await this._validateAndLoad(speed, x, y, swingLevel, spinLevel);
     if (validation.error) return { error: validation.error };
 
-    // Wide-safe X corridor: RHB [50–170], LHB [130–250]. Never a wide ball.
+    // Inline X corridor used to clamp random/variation balls: RHB [50–170], LHB [130–250].
+    // The user's selected X may be outside this (deliberate wide); only variation balls are clamped.
     const xBounds = this.safety.wideLine[handedness] ?? this.safety.wideLine.RHB;
-    if (x < xBounds.min || x > xBounds.max)
-      return { error: `X=${x} would be a wide for ${handedness} (valid corridor: ${xBounds.min}–${xBounds.max})` };
 
     const sessionSeed = (Date.now() ^ Math.floor(Math.random() * 0xFFFFFFFF)) >>> 0;
     const sessionId = `ses_${Date.now()}_${sessionSeed.toString(16)}`;
