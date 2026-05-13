@@ -501,13 +501,12 @@ class BowlingMachineController {
     })();
 
     const speedProfileOut = this.getSpeedRpmProfile(speed);
-    const zeroSS = swingLevel === 0 && spinLevel === 0;
-    const adjustedLeftRPM = zeroSS
-      ? Math.round(baseLeftRPM)
-      : this.applyRealisticSpeedRpmPattern(baseLeftRPM, speed, speedProfileOut, targetX, targetY);
-    const adjustedRightRPM = zeroSS
-      ? Math.round(baseRightRPM)
-      : this.applyRealisticSpeedRpmPattern(baseRightRPM, speed, speedProfileOut, targetX, targetY);
+    const adjustedLeftRPM = swingLevel !== 0
+      ? this.applyRealisticSpeedRpmPattern(baseLeftRPM, speed, speedProfileOut, targetX, targetY)
+      : Math.round(baseLeftRPM);
+    const adjustedRightRPM = swingLevel !== 0
+      ? this.applyRealisticSpeedRpmPattern(baseRightRPM, speed, speedProfileOut, targetX, targetY)
+      : Math.round(baseRightRPM);
 
     // Pan/Tilt overlays already baked into JSON, just round and clamp
     panBase  = this.clampRange('pan', this.round1(panBase));
@@ -679,14 +678,12 @@ class BowlingMachineController {
     if (minDistance < exactMatchThreshold) {
       this.metrics.exactMatches++;
 
-      // Zero swing/spin preserves dataset RPMs
-      const zeroSS = swingLevel === 0 && spinLevel === 0;
-      const adjustedLeftRPM = zeroSS
-        ? Math.round(closestPosition.data.L_RPM)
-        : this.applyRealisticSpeedRpmPattern(closestPosition.data.L_RPM, speed, speedProfile, x, y);
-      const adjustedRightRPM = zeroSS
-        ? Math.round(closestPosition.data.R_RPM)
-        : this.applyRealisticSpeedRpmPattern(closestPosition.data.R_RPM, speed, speedProfile, x, y);
+      const adjustedLeftRPM = swingLevel !== 0
+        ? this.applyRealisticSpeedRpmPattern(closestPosition.data.L_RPM, speed, speedProfile, x, y)
+        : Math.round(closestPosition.data.L_RPM);
+      const adjustedRightRPM = swingLevel !== 0
+        ? this.applyRealisticSpeedRpmPattern(closestPosition.data.R_RPM, speed, speedProfile, x, y)
+        : Math.round(closestPosition.data.R_RPM);
 
       // Use raw Left_Tilt and Right_Tilt from JSON directly
       let leftTilt = Math.round(closestPosition.data.Left_Tilt);
