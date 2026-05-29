@@ -238,8 +238,8 @@ class BowlingMachineController {
     const validation = await this._validateAndLoad(speed, x, y, swingLevel, spinLevel);
     if (validation.error) return { error: validation.error };
 
-    // Inline X corridor used to clamp random/variation balls: RHB [50–170], LHB [130–250].
-    // The user's selected X may be outside this (deliberate wide); only variation balls are clamped.
+    // Playable corridor per handedness: RHB [60–160], LHB [140–260]. Pitch centre = 160.
+    // Only variation balls are adjusted; the user's base X is used as-is.
     const xBounds = this.safety.wideLine[handedness] ?? this.safety.wideLine.RHB;
 
     const sessionSeed = (Date.now() ^ Math.floor(Math.random() * 0xFFFFFFFF)) >>> 0;
@@ -305,7 +305,21 @@ class BowlingMachineController {
       } else {
         // _buildBallParams now produces symmetric X drift
         params = this._buildBallParams(ballType, baseParams, rng, randomLevel);
-        params.x = Math.max(xBounds.min, Math.min(xBounds.max, params.x));
+        // Wide-line reflection: keep the ball inside the active corridor.
+        // When a ball overshoots on the "leg-into-other-hand" side we mirror it
+        // around the pitch centre (X=160, the RHB/LHB boundary) so it lands on
+        // the OFFSIDE for the active handedness — not on the leg side.
+        //   RHB x < 60  → reflect off offside wall (2*60-x)  → stays near offside
+        //   RHB x > 160 → mirror around 160       (320-x)    → lands on RHB offside ✓
+        //   LHB x > 260 → reflect off offside wall (520-x)   → stays near offside
+        //   LHB x < 140 → mirror around 160       (320-x)    → lands on LHB offside ✓
+        const pitchCentre = this.safety.wideLine.RHB.max; // 160
+        const rx = params.x > xBounds.max ? 2 * xBounds.max - params.x
+                 : params.x < xBounds.min ? (handedness === 'LHB'
+                     ? 2 * pitchCentre - params.x   // LHB leg-overshoot → mirror to offside
+                     : 2 * xBounds.min - params.x)  // RHB offside-overshoot → reflect back
+                 : params.x;
+        params.x = Math.max(xBounds.min, Math.min(xBounds.max, rx));
         params.y = Math.max(5, Math.min(80, params.y));
         params.spin = Math.max(-5, Math.min(5, params.spin));
         params.swing = Math.max(-5, Math.min(5, params.swing));

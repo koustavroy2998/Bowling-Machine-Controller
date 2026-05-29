@@ -156,9 +156,21 @@ body::before{content:'';position:fixed;inset:0;
 .dot.var-dot{width:9px;height:9px;background:var(--amber);box-shadow:0 0 10px var(--amber);opacity:.85}
 .dot.def-dot{width:7px;height:7px;background:rgba(41,182,246,.4);border:1px solid var(--blue);opacity:.5}
 .dot.sel-dot{width:11px;height:11px;background:var(--green);box-shadow:0 0 14px var(--green),0 0 5px rgba(255,255,255,.5);opacity:1;z-index:20}
+.wide-corridor{position:absolute;top:0;bottom:0;background:rgba(0,230,118,.05);
+  border-left:1px dashed rgba(0,230,118,.45);border-right:1px dashed rgba(0,230,118,.45);
+  pointer-events:none;z-index:4;transition:left .25s,width .25s}
+.wide-lbl{position:absolute;font-family:var(--mono);font-size:7px;color:rgba(0,230,118,.55);
+  top:3px;pointer-events:none;z-index:6;white-space:nowrap;line-height:1}
+.wide-lbl.right{transform:translateX(-100%)}
+.pitch-centre-line{position:absolute;top:0;bottom:0;left:53.33%;width:1px;
+  background:rgba(150,150,150,.2);pointer-events:none;z-index:3}
+.pitch-centre-lbl{position:absolute;top:3px;left:53.33%;font-family:var(--mono);
+  font-size:7px;color:rgba(150,150,150,.4);transform:translateX(-50%);
+  pointer-events:none;z-index:6;white-space:nowrap}
 .pitch-legend{margin-top:16px;display:flex;flex-direction:column;gap:6px;width:100%}
 .legend-row{display:flex;align-items:center;gap:8px;font-family:var(--mono);font-size:10px;color:var(--muted)}
 .legend-dot{width:8px;height:8px;border-radius:50%;flex-shrink:0}
+.legend-corridor{width:14px;height:8px;border:1px dashed rgba(0,230,118,.5);background:rgba(0,230,118,.08);flex-shrink:0}
 .pitch-stats{margin-top:16px;width:100%;display:grid;grid-template-columns:1fr 1fr;gap:6px}
 .pstat{background:var(--s2);border:1px solid var(--border);border-radius:var(--r);padding:8px 10px}
 .pstat .psv{font-family:var(--mono);font-size:16px;font-weight:500;color:var(--text)}
@@ -462,11 +474,16 @@ body::before{content:'';position:fixed;inset:0;
 <!-- CENTRE: pitch -->
 <div class="centre">
   <div style="font-size:10px;font-weight:700;letter-spacing:2px;text-transform:uppercase;color:var(--muted);margin-bottom:18px;text-align:center">Pitch Map</div>
-  <div style="display:flex;justify-content:space-between;width:200px;font-family:var(--mono);font-size:9px;color:var(--dim);margin-bottom:4px">
-    <span>LEG  X=0</span><span>X=300  OFF</span>
+  <div id="pitchAxisTop" style="display:flex;justify-content:space-between;width:200px;font-family:var(--mono);font-size:9px;color:var(--dim);margin-bottom:4px">
+    <span id="axisLeft">OFF  X=60</span><span id="axisRight">X=160  LEG</span>
   </div>
   <div class="pitch-wrap">
     <div class="pitch" id="pitch">
+      <div class="wide-corridor" id="wideCorridor"></div>
+      <div class="wide-lbl" id="wideMinLbl"></div>
+      <div class="wide-lbl right" id="wideMaxLbl"></div>
+      <div class="pitch-centre-line"></div>
+      <div class="pitch-centre-lbl">160</div>
       <div class="pitch-strip"></div>
       <div class="crease batting"></div>
       <div class="crease bowling"></div>
@@ -483,6 +500,7 @@ body::before{content:'';position:fixed;inset:0;
     <div class="legend-row"><div class="legend-dot" style="background:var(--blue);opacity:.35;border:1px solid var(--blue)"></div>Default ball</div>
     <div class="legend-row"><div class="legend-dot" style="background:var(--amber);box-shadow:0 0 6px var(--amber)"></div>Variation ball</div>
     <div class="legend-row"><div class="legend-dot" style="background:var(--green);box-shadow:0 0 6px var(--green)"></div>Selected ball</div>
+    <div class="legend-row"><div class="legend-corridor"></div>Wide-line corridor (active hand)</div>
     <div style="margin-top:4px;font-family:var(--mono);font-size:9px;color:var(--dim);border-top:1px solid var(--border);padding-top:6px">Dashed box = good length zone (Y 35–55)</div>
   </div>
   <div class="pitch-stats" style="width:200px">
@@ -534,6 +552,31 @@ body::before{content:'';position:fixed;inset:0;
 
 <script>
 let ctrl = null, session = null, selBall = null, selLevel = 2, selHandedness = 'RHB';
+
+const WIDE_BOUNDS = { RHB: { min: 60, max: 160 }, LHB: { min: 140, max: 260 } };
+
+function updateWideLineMarkers(h) {
+  const b = WIDE_BOUNDS[h] || WIDE_BOUNDS.RHB;
+  const minPct = (b.min / 300) * 100;
+  const maxPct = (b.max / 300) * 100;
+  const corridor = document.getElementById('wideCorridor');
+  corridor.style.left = minPct + '%';
+  corridor.style.width = (maxPct - minPct) + '%';
+  const minLbl = document.getElementById('wideMinLbl');
+  minLbl.style.left = minPct + '%';
+  minLbl.textContent = b.min;
+  const maxLbl = document.getElementById('wideMaxLbl');
+  maxLbl.style.left = maxPct + '%';
+  maxLbl.textContent = b.max;
+  // Axis labels: for RHB offside=left(low X), leg=right; for LHB leg=left, offside=right
+  if (h === 'RHB') {
+    document.getElementById('axisLeft').textContent  = 'OFF  X=60';
+    document.getElementById('axisRight').textContent = 'X=160  LEG';
+  } else {
+    document.getElementById('axisLeft').textContent  = 'LEG  X=140';
+    document.getElementById('axisRight').textContent = 'X=260  OFF';
+  }
+}
 
 const TYPE_LABEL = {
   default:'Default',length_shift:'Length + Line',straight_ball:'Straight + Line',
@@ -703,6 +746,7 @@ function setHandedness(h){
   selHandedness=h;
   document.getElementById('btnRHB').classList.toggle('on', h==='RHB');
   document.getElementById('btnLHB').classList.toggle('on', h==='LHB');
+  updateWideLineMarkers(h);
 }
 
 function onToggle(){
@@ -902,7 +946,7 @@ function syntaxHL(json){
     .replace(/:\s*(true|false)/g,': <span class="jboo">$1</span>');
 }
 
-boot(); updateBaseDot(); onToggle();
+boot(); updateBaseDot(); onToggle(); updateWideLineMarkers(selHandedness);
 </script>
 </body>
 </html>
