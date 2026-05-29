@@ -277,7 +277,19 @@ class BowlingMachineController {
       leftRPM: null, rightRPM: null,
     };
 
-    const baseRaw = await this.getMachineConfig(speed, x, y, swingLevel, spinLevel);
+    // Compete mode: user always configures from RHB perspective.
+    // For LHB, unconditionally mirror x around the pitch centre (X=160) so the ball
+    // lands on the symmetric offside position — no manual re-input needed.
+    // For RHB, reflect back if out-of-bounds, otherwise use as-is.
+    const pitchCentre = this.safety.wideLine.RHB.max; // 160
+    let baseX = handedness === 'LHB'
+      ? 2 * pitchCentre - x                                    // always mirror for LHB
+      : (x < xBounds.min ? 2 * xBounds.min - x                // RHB: reflect off offside wall
+       : x > xBounds.max ? 2 * xBounds.max - x : x);          // RHB: reflect off leg wall
+    baseX = Math.max(xBounds.min, Math.min(xBounds.max, baseX));
+    baseParams.x = baseX;
+
+    const baseRaw = await this.getMachineConfig(speed, baseX, y, swingLevel, spinLevel);
     if (baseRaw.error) return { error: baseRaw.error };
     const baseConfig = baseRaw.machineSettings ?? baseRaw;
 
@@ -305,15 +317,7 @@ class BowlingMachineController {
       } else {
         // _buildBallParams now produces symmetric X drift
         params = this._buildBallParams(ballType, baseParams, rng, randomLevel);
-        // Wide-line reflection: keep the ball inside the active corridor.
-        // When a ball overshoots on the "leg-into-other-hand" side we mirror it
-        // around the pitch centre (X=160, the RHB/LHB boundary) so it lands on
-        // the OFFSIDE for the active handedness — not on the leg side.
-        //   RHB x < 60  → reflect off offside wall (2*60-x)  → stays near offside
-        //   RHB x > 160 → mirror around 160       (320-x)    → lands on RHB offside ✓
-        //   LHB x > 260 → reflect off offside wall (520-x)   → stays near offside
-        //   LHB x < 140 → mirror around 160       (320-x)    → lands on LHB offside ✓
-        const pitchCentre = this.safety.wideLine.RHB.max; // 160
+        // Variation drift may still push x outside the corridor — second-pass reflection.
         const rx = params.x > xBounds.max ? 2 * xBounds.max - params.x
                  : params.x < xBounds.min ? (handedness === 'LHB'
                      ? 2 * pitchCentre - params.x   // LHB leg-overshoot → mirror to offside

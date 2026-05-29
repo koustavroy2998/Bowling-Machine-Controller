@@ -743,10 +743,22 @@ function setLevel(l){
 }
 
 function setHandedness(h){
-  selHandedness=h;
+  const prev = selHandedness;
+  selHandedness = h;
   document.getElementById('btnRHB').classList.toggle('on', h==='RHB');
   document.getElementById('btnLHB').classList.toggle('on', h==='LHB');
   updateWideLineMarkers(h);
+
+  // Compete mode: when handedness flips in random mode, auto-mirror the X input
+  // around pitch centre (160) and re-run so the other batsman gets the symmetric ball.
+  if(prev !== h && document.getElementById('isRandom').checked){
+    const xEl = document.getElementById('xVal');
+    const curX = parseFloat(xEl.value) || 150;
+    const mirrored = Math.round(2 * 160 - curX);
+    xEl.value = Math.max(0, Math.min(300, mirrored));
+    updateBaseDot();
+    if(session) run(); // auto-regenerate if a session is already loaded
+  }
 }
 
 function onToggle(){
