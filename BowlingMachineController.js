@@ -28,7 +28,7 @@ class BowlingMachineController {
 
     this.safety = {
       leftRightTilt: { min: 990, max: 1400 },
-      pan: { min: 2600, max: 3200 },
+      pan: { min: 2700, max: 3800 },
       tilt: { min: 2100, max: 3200 },
       wideLine: { RHB: { min: 60, max: 160 }, LHB: { min: 140, max: 260 } },
     };

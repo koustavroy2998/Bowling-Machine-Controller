@@ -43,9 +43,9 @@ def generate_minimal_bowling_dataset_with_rpm_map(
 
     SAFETY_RANGES = {
         'rpm': {'min': 150, 'max': 550},
-        'pan': {'min': 2500, 'max': 3500},
+        'pan': {'min': 2500, 'max': 3800},
         'tilt': {'min': 500, 'max': 3900},
-        'left_right_tilt': {'min': 400, 'max': 2700}
+        'left_right_tilt': {'min': 950, 'max': 1400}
     }
 
     pos_coords = {
@@ -77,12 +77,12 @@ def generate_minimal_bowling_dataset_with_rpm_map(
     pan_delta = {
         'centre - 0': 0,
         'top- 1': 0,
-        'left - 2': +200,
-        'right - 3': -200,
+        'left - 2': -300,
+        'right - 3': +300,
         'bottom - 4': 0,
         'top-mid-centre-5': 0,
-        'top-mid-left-6': +200,
-        'top-mid-right-7': -200
+        'top-mid-left-6': -300,
+        'top-mid-right-7': +300
     }
 
     lr_tilt_delta = {
@@ -414,9 +414,9 @@ if __name__ == "__main__":
             'swing_pan_base': 30,
             'swing_pan_threshold': 3,
             'swing_pan_extra_per_level': 0,
-            'tilt_additive_bias': 0,
+            'tilt_additive_bias': -50,
             'tilt_spin_multiplier': 1.0,
-            'lr_tilt_additive_bias': 0,
+            'lr_tilt_additive_bias': -50,
             'lr_tilt_offset_multiplier': 1.5,
             'enhanced_tilt_per_level': 200,
             'spin_pan_effect_multiplier': 10
@@ -426,9 +426,9 @@ if __name__ == "__main__":
             'swing_pan_base': 30,
             'swing_pan_threshold': 3,
             'swing_pan_extra_per_level': 5,
-            'tilt_additive_bias': 0,
+            'tilt_additive_bias': -80,
             'tilt_spin_multiplier': 1.0,
-            'lr_tilt_additive_bias': 0,
+            'lr_tilt_additive_bias': -80,
             'lr_tilt_offset_multiplier': 1.5,
             'enhanced_tilt_per_level': 200,
             'spin_pan_effect_multiplier': 10
@@ -462,8 +462,8 @@ if __name__ == "__main__":
     result = generate_minimal_bowling_dataset_with_rpm_map(
         speed_rpm_map=machine_rpm_map,
         speed_group_tuning=custom_speed_group_tuning,
-        pan_offset=53,
-        tilt_offset=80,
+        pan_offset=453,
+        tilt_offset=92,
         output_filename="pitch-mapping.json"
     )
 
