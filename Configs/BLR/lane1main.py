@@ -45,7 +45,7 @@ def generate_minimal_bowling_dataset_with_rpm_map(
         'rpm': {'min': 150, 'max': 550},
         'pan': {'min': 2500, 'max': 3800},
         'tilt': {'min': 500, 'max': 3900},
-        'left_right_tilt': {'min': 950, 'max': 1400}
+        'left_right_tilt': {'min': 600, 'max': 1400}
     }
 
     pos_coords = {
@@ -77,12 +77,12 @@ def generate_minimal_bowling_dataset_with_rpm_map(
     pan_delta = {
         'centre - 0': 0,
         'top- 1': 0,
-        'left - 2': -300,
-        'right - 3': +300,
+        'left - 2': -500,
+        'right - 3': +500,
         'bottom - 4': 0,
         'top-mid-centre-5': 0,
-        'top-mid-left-6': -300,
-        'top-mid-right-7': +300
+        'top-mid-left-6': -500,
+        'top-mid-right-7': +500
     }
 
     lr_tilt_delta = {
@@ -111,14 +111,14 @@ def generate_minimal_bowling_dataset_with_rpm_map(
             'enhanced_tilt_per_level': 200,
             'spin_pan_effect_multiplier': 10
         },
-        'G2_80': {
+         'G2_80': {
             'speeds': [80],
             'swing_pan_base': 25,
             'swing_pan_threshold': 3,
             'swing_pan_extra_per_level': 5,
-            'tilt_additive_bias': 0,
+            'tilt_additive_bias': 700,
             'tilt_spin_multiplier': 1.08,
-            'lr_tilt_additive_bias': 0,
+            'lr_tilt_additive_bias': -450,
             'lr_tilt_offset_multiplier': 1.5,
             'enhanced_tilt_per_level': 200,
             'spin_pan_effect_multiplier': 10
@@ -128,9 +128,9 @@ def generate_minimal_bowling_dataset_with_rpm_map(
             'swing_pan_base': 30,
             'swing_pan_threshold': 3,
             'swing_pan_extra_per_level': 0,
-            'tilt_additive_bias': 0,
+            'tilt_additive_bias': 500,
             'tilt_spin_multiplier': 1.0,
-            'lr_tilt_additive_bias': 0,
+            'lr_tilt_additive_bias': -300,
             'lr_tilt_offset_multiplier': 1.5,
             'enhanced_tilt_per_level': 200,
             'spin_pan_effect_multiplier': 10
@@ -402,9 +402,9 @@ if __name__ == "__main__":
             'swing_pan_base': 25,
             'swing_pan_threshold': 3,
             'swing_pan_extra_per_level': 5,
-            'tilt_additive_bias': 0,
+            'tilt_additive_bias': 700,
             'tilt_spin_multiplier': 1.08,
-            'lr_tilt_additive_bias': 0,
+            'lr_tilt_additive_bias': -300,
             'lr_tilt_offset_multiplier': 1.5,
             'enhanced_tilt_per_level': 200,
             'spin_pan_effect_multiplier': 10
@@ -414,9 +414,9 @@ if __name__ == "__main__":
             'swing_pan_base': 30,
             'swing_pan_threshold': 3,
             'swing_pan_extra_per_level': 0,
-            'tilt_additive_bias': -50,
+            'tilt_additive_bias': 500,
             'tilt_spin_multiplier': 1.0,
-            'lr_tilt_additive_bias': -50,
+            'lr_tilt_additive_bias': -300,
             'lr_tilt_offset_multiplier': 1.5,
             'enhanced_tilt_per_level': 200,
             'spin_pan_effect_multiplier': 10
