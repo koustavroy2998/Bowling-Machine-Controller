@@ -27,9 +27,10 @@ class BowlingMachineController {
     };
 
     this.safety = {
-      leftRightTilt: { min: 690, max: 1400 },
-      pan: { min: 2700, max: 3800 },
-      tilt: { min: 2100, max: 3500 },
+      // Machine units rescaled to 0-1000 (full ranges: L/R tilt 400-2700, pan 2500-3800, tilt 500-3900)
+      leftRightTilt: { min: 0, max: 1000 },
+      pan: { min: 0, max: 1000 },
+      tilt: { min: 0, max: 1000 },
       wideLine: { RHB: { min: 60, max: 160 }, LHB: { min: 140, max: 260 } },
     };
 
@@ -776,7 +777,8 @@ class BowlingMachineController {
   calculateConfidenceScore(points, tolerance) { const avg = points.reduce((s, p) => s + p.distance, 0) / points.length; const maxW = Math.max(...points.map(p => p.weight || p.w || 1)); return Math.round((Math.max(0, 100 - (avg / tolerance) * 30) + Math.min(100, maxW * 20)) / 2); }
   calculateAccuracyScore(points, tX, tY) { const avg = points.reduce((s, p) => s + p.distance, 0) / points.length; const rt = this.getRegionTolerance(tY); return Math.min(100, Math.max(0, 100 - (avg / rt) * 15) + Math.min(10, points.length * 2)); }
   getRegionName(y) { if (y <= 15) return 'ULTRA_PRECISION_TOP_EDGE'; if (y <= 35) return 'HIGH_PRECISION_TOP'; if (y <= 60) return 'MEDIUM_PRECISION_MIDDLE'; return 'STANDARD_PRECISION_BOTTOM'; }
-  midTiltAnchor(y) { const pts = [{ y: 5, m: 1500 }, { y: 25, m: 1400 }, { y: 40, m: 1200 }, { y: 80, m: 800 }]; if (y <= pts[0].y) return pts[0].m; if (y >= pts[pts.length - 1].y) return pts[pts.length - 1].m; for (let i = 0; i < pts.length - 1; i++) { const a = pts[i], b = pts[i + 1]; if (y >= a.y && y <= b.y) return a.m + (y - a.y) / (b.y - a.y) * (b.m - a.m); } return 1200; }
+  // L/R tilt anchors mapped 400-2700 -> 0-1000, i.e. (old-400)/2.3 (was 1500/1400/1200/800)
+  midTiltAnchor(y) { const pts = [{ y: 5, m: 478.3 }, { y: 25, m: 434.8 }, { y: 40, m: 347.8 }, { y: 80, m: 173.9 }]; if (y <= pts[0].y) return pts[0].m; if (y >= pts[pts.length - 1].y) return pts[pts.length - 1].m; for (let i = 0; i < pts.length - 1; i++) { const a = pts[i], b = pts[i + 1]; if (y >= a.y && y <= b.y) return a.m + (y - a.y) / (b.y - a.y) * (b.m - a.m); } return 347.8; }
   getMaxLRTiltForY(y, speed, swingLevel, spinLevel) { if (y <= 40) return null; const ld = this.jsonData.data[`${speed}_kmph`].swing_levels[`swing_level_${swingLevel}`].spin_levels[`spin_level_${spinLevel}`]; const c = ld.positions['centre - 0'], bm = ld.positions['bottom - 4']; const t = (y - 40) / 40; return { maxLeft: c.Left_Tilt + t * (bm.Left_Tilt - c.Left_Tilt), maxRight: c.Right_Tilt + t * (bm.Right_Tilt - c.Right_Tilt) }; }
   anisotropicDistance(ax, ay, bx, by) { const yAvg = (ay + by) / 2; const yScale = yAvg >= 60 ? 1.5 : yAvg >= 35 ? 1.2 : 1.0; return Math.hypot(ax - bx, (ay - by) * yScale); }
 
