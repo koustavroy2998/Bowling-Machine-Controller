@@ -41,12 +41,13 @@ def generate_minimal_bowling_dataset_with_rpm_map(
         'top-mid-centre-5', 'top-mid-left-6', 'top-mid-right-7'
     ]
 
-    # Units rescaled to 0-1000 (old pan 2500-3800, tilt 500-3900, L/R tilt 400-2700). RPM unchanged, limit raised to 700.
+    # Machine units remapped: full old ranges (pan 2500-3800, tilt 500-3900, L/R tilt 400-2700) -> 100-900.
+    # new = 100 + 0.8 * (old - old_min) / old_span. RPM is real wheel speed: unchanged, limit 150-700.
     SAFETY_RANGES = {
         'rpm': {'min': 150, 'max': 700},
-        'pan': {'min': 0, 'max': 1000},
-        'tilt': {'min': 0, 'max': 1000},
-        'left_right_tilt': {'min': 0, 'max': 1000}
+        'pan': {'min': 100, 'max': 900},
+        'tilt': {'min': 100, 'max': 900},
+        'left_right_tilt': {'min': 100, 'max': 900}
     }
 
     pos_coords = {
@@ -61,40 +62,40 @@ def generate_minimal_bowling_dataset_with_rpm_map(
     }
 
     CENTRE_BASELINES = {
-        60:  {'Pan': 307.7, 'Tilt': 770.6, 'Left_Tilt': 543.5, 'Right_Tilt': 543.5},
-        70:  {'Pan': 307.7, 'Tilt': 770.6, 'Left_Tilt': 456.5, 'Right_Tilt': 456.5},
-        80:  {'Pan': 307.7, 'Tilt': 770.6, 'Left_Tilt': 413.0, 'Right_Tilt': 413.0},
-        90:  {'Pan': 307.7, 'Tilt': 770.6, 'Left_Tilt': 326.1, 'Right_Tilt': 326.1},
-        100: {'Pan': 307.7, 'Tilt': 770.6, 'Left_Tilt': 326.1, 'Right_Tilt': 326.1},
-        110: {'Pan': 307.7, 'Tilt': 770.6, 'Left_Tilt': 304.3, 'Right_Tilt': 304.3},
-        120: {'Pan': 307.7, 'Tilt': 770.6, 'Left_Tilt': 304.3, 'Right_Tilt': 304.3},
-        130: {'Pan': 307.7, 'Tilt': 770.6, 'Left_Tilt': 304.3, 'Right_Tilt': 304.3},
-        140: {'Pan': 307.7, 'Tilt': 770.6, 'Left_Tilt': 304.3, 'Right_Tilt': 304.3},
-        150: {'Pan': 307.7, 'Tilt': 770.6, 'Left_Tilt': 304.3, 'Right_Tilt': 304.3},
-        160: {'Pan': 307.7, 'Tilt': 794.1, 'Left_Tilt': 304.3, 'Right_Tilt': 304.3},
+        60:  {'Pan': 346.2, 'Tilt': 716.5, 'Left_Tilt': 534.8, 'Right_Tilt': 534.8},
+        70:  {'Pan': 346.2, 'Tilt': 716.5, 'Left_Tilt': 465.2, 'Right_Tilt': 465.2},
+        80:  {'Pan': 346.2, 'Tilt': 716.5, 'Left_Tilt': 430.4, 'Right_Tilt': 430.4},
+        90:  {'Pan': 346.2, 'Tilt': 716.5, 'Left_Tilt': 360.9, 'Right_Tilt': 360.9},
+        100: {'Pan': 346.2, 'Tilt': 716.5, 'Left_Tilt': 360.9, 'Right_Tilt': 360.9},
+        110: {'Pan': 346.2, 'Tilt': 716.5, 'Left_Tilt': 343.5, 'Right_Tilt': 343.5},
+        120: {'Pan': 346.2, 'Tilt': 716.5, 'Left_Tilt': 343.5, 'Right_Tilt': 343.5},
+        130: {'Pan': 346.2, 'Tilt': 716.5, 'Left_Tilt': 343.5, 'Right_Tilt': 343.5},
+        140: {'Pan': 346.2, 'Tilt': 716.5, 'Left_Tilt': 343.5, 'Right_Tilt': 343.5},
+        150: {'Pan': 346.2, 'Tilt': 716.5, 'Left_Tilt': 343.5, 'Right_Tilt': 343.5},
+        160: {'Pan': 346.2, 'Tilt': 735.3, 'Left_Tilt': 343.5, 'Right_Tilt': 343.5},
     }
 
     # Symmetric pan deltas (±200) so left/right magnitudes match
     pan_delta = {
         'centre - 0': 0,
         'top- 1': 0,
-        'left - 2': -384.6,
-        'right - 3': +384.6,
+        'left - 2': -307.7,
+        'right - 3': +307.7,
         'bottom - 4': 0,
         'top-mid-centre-5': 0,
-        'top-mid-left-6': -384.6,
-        'top-mid-right-7': +384.6
+        'top-mid-left-6': -307.7,
+        'top-mid-right-7': +307.7
     }
 
     lr_tilt_delta = {
         'centre - 0': 0,
-        'top- 1': +130.4,
+        'top- 1': +104.3,
         'left - 2': 0,
         'right - 3': 0,
-        'bottom - 4': -173.9,
-        'top-mid-centre-5': +87.0,
-        'top-mid-left-6': +87.0,
-        'top-mid-right-7': +87.0
+        'bottom - 4': -139.1,
+        'top-mid-centre-5': +69.6,
+        'top-mid-left-6': +69.6,
+        'top-mid-right-7': +69.6
     }
 
     # Speed-grouped shared knobs (PRESET CONFIGS FROM paste.txt)
@@ -102,75 +103,75 @@ def generate_minimal_bowling_dataset_with_rpm_map(
     SPEED_GROUPS = {
         'G1_60_70': {
             'speeds': [60, 70],
-            'swing_pan_base': 23.1,
+            'swing_pan_base': 18.5,
             'swing_pan_threshold': 3,
-            'swing_pan_extra_per_level': 3.8,
-            'tilt_additive_bias': -88.24,
+            'swing_pan_extra_per_level': 3.08,
+            'tilt_additive_bias': -70.59,
             'tilt_spin_multiplier': 1.15,
-            'lr_tilt_additive_bias': -87.0,
+            'lr_tilt_additive_bias': -69.6,
             'lr_tilt_offset_multiplier': 1.5,
-            'enhanced_tilt_per_level': 87.0,
-            'spin_pan_effect_multiplier': 7.7
+            'enhanced_tilt_per_level': 69.6,
+            'spin_pan_effect_multiplier': 6.15
         },
          'G2_80': {
             'speeds': [80],
-            'swing_pan_base': 19.2,
+            'swing_pan_base': 15.4,
             'swing_pan_threshold': 3,
-            'swing_pan_extra_per_level': 3.8,
-            'tilt_additive_bias': 205.88,
+            'swing_pan_extra_per_level': 3.08,
+            'tilt_additive_bias': 164.71,
             'tilt_spin_multiplier': 1.08,
-            'lr_tilt_additive_bias': -195.7,
+            'lr_tilt_additive_bias': -156.5,
             'lr_tilt_offset_multiplier': 1.5,
-            'enhanced_tilt_per_level': 87.0,
-            'spin_pan_effect_multiplier': 7.7
+            'enhanced_tilt_per_level': 69.6,
+            'spin_pan_effect_multiplier': 6.15
         },
         'G3_90_100': {
             'speeds': [90, 100],
-            'swing_pan_base': 23.1,
+            'swing_pan_base': 18.5,
             'swing_pan_threshold': 3,
             'swing_pan_extra_per_level': 0,
-            'tilt_additive_bias': 147.06,
+            'tilt_additive_bias': 117.65,
             'tilt_spin_multiplier': 1.0,
-            'lr_tilt_additive_bias': -130.4,
+            'lr_tilt_additive_bias': -104.3,
             'lr_tilt_offset_multiplier': 1.5,
-            'enhanced_tilt_per_level': 87.0,
-            'spin_pan_effect_multiplier': 7.7
+            'enhanced_tilt_per_level': 69.6,
+            'spin_pan_effect_multiplier': 6.15
         },
         'G4_110_120': {
             'speeds': [110, 120],
-            'swing_pan_base': 23.1,
+            'swing_pan_base': 18.5,
             'swing_pan_threshold': 3,
-            'swing_pan_extra_per_level': 3.8,
+            'swing_pan_extra_per_level': 3.08,
             'tilt_additive_bias': 0,
             'tilt_spin_multiplier': 1.0,
             'lr_tilt_additive_bias': 0,
             'lr_tilt_offset_multiplier': 1.5,
-            'enhanced_tilt_per_level': 87.0,
-            'spin_pan_effect_multiplier': 7.7
+            'enhanced_tilt_per_level': 69.6,
+            'spin_pan_effect_multiplier': 6.15
         },
         'G5_130_140': {
             'speeds': [130, 140],
-            'swing_pan_base': 23.1,
+            'swing_pan_base': 18.5,
             'swing_pan_threshold': 3,
-            'swing_pan_extra_per_level': 3.8,
+            'swing_pan_extra_per_level': 3.08,
             'tilt_additive_bias': 0,
             'tilt_spin_multiplier': 1.0,
             'lr_tilt_additive_bias': 0,
             'lr_tilt_offset_multiplier': 1.5,
-            'enhanced_tilt_per_level': 87.0,
-            'spin_pan_effect_multiplier': 7.7
+            'enhanced_tilt_per_level': 69.6,
+            'spin_pan_effect_multiplier': 6.15
         },
         'G6_150_160': {
             'speeds': [150, 160],
-            'swing_pan_base': 23.1,
+            'swing_pan_base': 18.5,
             'swing_pan_threshold': 3,
-            'swing_pan_extra_per_level': 3.8,
+            'swing_pan_extra_per_level': 3.08,
             'tilt_additive_bias': 0,
             'tilt_spin_multiplier': 1.0,
             'lr_tilt_additive_bias': 0,
             'lr_tilt_offset_multiplier': 1.5,
-            'enhanced_tilt_per_level': 87.0,
-            'spin_pan_effect_multiplier': 7.7
+            'enhanced_tilt_per_level': 69.6,
+            'spin_pan_effect_multiplier': 6.15
         },
     }
 
@@ -191,15 +192,15 @@ def generate_minimal_bowling_dataset_with_rpm_map(
                 return g
         # default if any is missed
         return {
-            'swing_pan_base': 19.2,
+            'swing_pan_base': 15.4,
             'swing_pan_threshold': 3,
-            'swing_pan_extra_per_level': 3.8,
+            'swing_pan_extra_per_level': 3.08,
             'tilt_additive_bias': 0,
             'tilt_spin_multiplier': 1.0,
             'lr_tilt_additive_bias': 0,
             'lr_tilt_offset_multiplier': 1.0,
-            'enhanced_tilt_per_level': 87.0,
-            'spin_pan_effect_multiplier': 7.7
+            'enhanced_tilt_per_level': 69.6,
+            'spin_pan_effect_multiplier': 6.15
         }
 
     def calculate_machine_values(speed, swing_level, spin_level, position):
@@ -249,7 +250,7 @@ def generate_minimal_bowling_dataset_with_rpm_map(
 
         # === SPIN EFFECTS (left/right separation + grouped params) ===
         spin_pan_effect = spin_level * gp['spin_pan_effect_multiplier'] if spin_level != 0 else 0
-        spin_tilt_effect = (spin_level * 1.47 * gp['tilt_spin_multiplier']) if spin_level != 0 else 0
+        spin_tilt_effect = (spin_level * 1.176 * gp['tilt_spin_multiplier']) if spin_level != 0 else 0
 
         # === No swing-induced L/R tilt asymmetry ===
         swing_left_tilt_boost = 0
@@ -274,8 +275,8 @@ def generate_minimal_bowling_dataset_with_rpm_map(
         final_right_rpm = clamp(right_rpm, 'rpm')
 
         # Ensure spin separation visibility in data rows
-        if spin_level != 0 and abs(final_left_tilt - final_right_tilt) < 8.7:
-            adjust = 8.7
+        if spin_level != 0 and abs(final_left_tilt - final_right_tilt) < 6.96:
+            adjust = 6.96
             if spin_level > 0:
                 final_left_tilt = clamp(final_left_tilt + adjust, 'left_right_tilt')
                 final_right_tilt = clamp(final_right_tilt - adjust, 'left_right_tilt')
@@ -287,13 +288,13 @@ def generate_minimal_bowling_dataset_with_rpm_map(
             'L_RPM': round(final_left_rpm, 1),
             'R_RPM': round(final_right_rpm, 1),
             'Pan': round(final_pan, 1),
-            'Pan_actual': round(final_pan + np.random.uniform(-2.3, 2.3), 1),
+            'Pan_actual': round(final_pan + np.random.uniform(-1.85, 1.85), 1),
             'Tilt': round(final_tilt, 1),
-            'Tilt_actual': round(final_tilt + np.random.uniform(-0.88, 0.88), 1),
+            'Tilt_actual': round(final_tilt + np.random.uniform(-0.71, 0.71), 1),
             'Left_Tilt': round(final_left_tilt, 1),
-            'Left_Tilt_Actual': round(final_left_tilt + np.random.uniform(-1.3, 1.3), 1),
+            'Left_Tilt_Actual': round(final_left_tilt + np.random.uniform(-1.04, 1.04), 1),
             'Right_Tilt': round(final_right_tilt, 1),
-            'Right_Tilt_Actual': round(final_right_tilt + np.random.uniform(-1.3, 1.3), 1),
+            'Right_Tilt_Actual': round(final_right_tilt + np.random.uniform(-1.04, 1.04), 1),
             'X': coords['x'],
             'Y': coords['y']
         }
@@ -388,83 +389,83 @@ if __name__ == "__main__":
     custom_speed_group_tuning = {
      'G1_60_70': {
             'speeds': [60, 70],
-            'swing_pan_base': 23.1,
+            'swing_pan_base': 18.5,
             'swing_pan_threshold': 3,
-            'swing_pan_extra_per_level': 3.8,
-            'tilt_additive_bias': -88.24,
+            'swing_pan_extra_per_level': 3.08,
+            'tilt_additive_bias': -70.59,
             'tilt_spin_multiplier': 1.15,
-            'lr_tilt_additive_bias': -87.0,
+            'lr_tilt_additive_bias': -69.6,
             'lr_tilt_offset_multiplier': 1.5,
-            'enhanced_tilt_per_level': 87.0,
-            'spin_pan_effect_multiplier': 7.7
+            'enhanced_tilt_per_level': 69.6,
+            'spin_pan_effect_multiplier': 6.15
         },
         'G2_80': {
             'speeds': [80],
-            'swing_pan_base': 19.2,
+            'swing_pan_base': 15.4,
             'swing_pan_threshold': 3,
-            'swing_pan_extra_per_level': 3.8,
-            'tilt_additive_bias': 205.88,
+            'swing_pan_extra_per_level': 3.08,
+            'tilt_additive_bias': 164.71,
             'tilt_spin_multiplier': 1.08,
-            'lr_tilt_additive_bias': -130.4,
+            'lr_tilt_additive_bias': -104.3,
             'lr_tilt_offset_multiplier': 1.5,
-            'enhanced_tilt_per_level': 87.0,
-            'spin_pan_effect_multiplier': 7.7
+            'enhanced_tilt_per_level': 69.6,
+            'spin_pan_effect_multiplier': 6.15
         },
         'G3_90_100': {
             'speeds': [90, 100],
-            'swing_pan_base': 23.1,
+            'swing_pan_base': 18.5,
             'swing_pan_threshold': 3,
             'swing_pan_extra_per_level': 0,
-            'tilt_additive_bias': 147.06,
+            'tilt_additive_bias': 117.65,
             'tilt_spin_multiplier': 1.0,
-            'lr_tilt_additive_bias': -130.4,
+            'lr_tilt_additive_bias': -104.3,
             'lr_tilt_offset_multiplier': 1.5,
-            'enhanced_tilt_per_level': 87.0,
-            'spin_pan_effect_multiplier': 7.7
+            'enhanced_tilt_per_level': 69.6,
+            'spin_pan_effect_multiplier': 6.15
         },
         'G4_110_120': {
             'speeds': [110, 120],
-            'swing_pan_base': 23.1,
+            'swing_pan_base': 18.5,
             'swing_pan_threshold': 3,
-            'swing_pan_extra_per_level': 3.8,
-            'tilt_additive_bias': -23.53,
+            'swing_pan_extra_per_level': 3.08,
+            'tilt_additive_bias': -18.82,
             'tilt_spin_multiplier': 1.0,
-            'lr_tilt_additive_bias': -34.8,
+            'lr_tilt_additive_bias': -27.8,
             'lr_tilt_offset_multiplier': 1.5,
-            'enhanced_tilt_per_level': 87.0,
-            'spin_pan_effect_multiplier': 7.7
+            'enhanced_tilt_per_level': 69.6,
+            'spin_pan_effect_multiplier': 6.15
         },
         'G5_130_140': {
             'speeds': [130, 140],
-            'swing_pan_base': 23.1,
+            'swing_pan_base': 18.5,
             'swing_pan_threshold': 3,
-            'swing_pan_extra_per_level': 3.8,
+            'swing_pan_extra_per_level': 3.08,
             'tilt_additive_bias': 0,
             'tilt_spin_multiplier': 1.0,
             'lr_tilt_additive_bias': 0,
             'lr_tilt_offset_multiplier': 1.5,
-            'enhanced_tilt_per_level': 87.0,
-            'spin_pan_effect_multiplier': 7.7
+            'enhanced_tilt_per_level': 69.6,
+            'spin_pan_effect_multiplier': 6.15
         },
         'G6_150_160': {
             'speeds': [150, 160],
-            'swing_pan_base': 23.1,
+            'swing_pan_base': 18.5,
             'swing_pan_threshold': 3,
-            'swing_pan_extra_per_level': 3.8,
+            'swing_pan_extra_per_level': 3.08,
             'tilt_additive_bias': 0,
             'tilt_spin_multiplier': 1.0,
             'lr_tilt_additive_bias': 0,
             'lr_tilt_offset_multiplier': 1.5,
-            'enhanced_tilt_per_level': 87.0,
-            'spin_pan_effect_multiplier': 7.7
+            'enhanced_tilt_per_level': 69.6,
+            'spin_pan_effect_multiplier': 6.15
         },
     }
 
     result = generate_minimal_bowling_dataset_with_rpm_map(
         speed_rpm_map=machine_rpm_map,
         speed_group_tuning=custom_speed_group_tuning,
-        pan_offset=348.5,
-        tilt_offset=27.06,
+        pan_offset=0,
+        tilt_offset=0,
         output_filename="pitch-mapping.json"
     )
 

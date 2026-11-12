@@ -358,14 +358,14 @@ body::before{content:'';position:fixed;inset:0;
     <div class="f2" style="margin-bottom:10px">
       <div class="field">
         <label>X units/cm</label>
-        <input type="number" id="calX" value="1.145" step="0.001" min="0.001" onchange="applyCalib()">
+        <input type="number" id="calX" value="1.5" step="0.001" min="0.001" onchange="applyCalib()">
       </div>
       <div class="field">
         <label>Y units/cm</label>
-        <input type="number" id="calY" value="0.5" step="0.001" min="0.001" onchange="applyCalib()">
+        <input type="number" id="calY" value="0.08" step="0.001" min="0.001" onchange="applyCalib()">
       </div>
     </div>
-    <div class="calib-note" style="margin-bottom:10px">X/Y: machine units per real cm on pitch</div>
+    <div class="calib-note" style="margin-bottom:10px">X/Y: grid units per real cm on pitch (2 m × 10 m → X 0–300, Y 0–80)</div>
 
     <!-- Per-level drift ranges: tabs L1 / L2 / L3 -->
     <div class="calib-tabs">
@@ -642,8 +642,8 @@ function applyCalib(){
   if(!ctrl) return;
   const n = id => parseFloat(document.getElementById(id).value)||0;
   ctrl.loadCalibrationData({
-    X_UNITS_PER_CM: n('calX') || 0.2,
-    Y_UNITS_PER_CM: n('calY') || 0.5,
+    X_UNITS_PER_CM: n('calX') || 1.5,   // 2 m wide pitch = X 0–300
+    Y_UNITS_PER_CM: n('calY') || 0.08,  // 10 m long pitch = Y 0–80
 
     speedDrift: {
       1: { min:n('c1_sd_min'), max:n('c1_sd_max'), minGap:n('c1_sd_gap') },
