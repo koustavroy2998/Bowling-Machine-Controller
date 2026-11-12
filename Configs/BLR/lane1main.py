@@ -33,7 +33,7 @@ def generate_minimal_bowling_dataset_with_rpm_map(
         print(f"   Speed Group Tuning Provided: {len(speed_group_tuning)} groups")
     print("=" * 60)
 
-    speeds = [60, 70, 80, 90, 100, 110, 120, 130, 140, 150, 160]
+    speeds = [60, 70, 80, 90, 100, 110, 120, 130, 140, 150]  # 160 removed: not measured on the new machine
     swing_levels = [-5, -4, -3, -2, -1, 0, 1, 2, 3, 4, 5]
     spin_levels  = [-5, -4, -3, -2, -1, 0, 1, 2, 3, 4, 5]
     positions = [
@@ -41,14 +41,21 @@ def generate_minimal_bowling_dataset_with_rpm_map(
         'top-mid-centre-5', 'top-mid-left-6', 'top-mid-right-7'
     ]
 
-    # Machine units remapped: full old ranges (pan 2500-3800, tilt 500-3900, L/R tilt 400-2700) -> 100-900.
-    # new = 100 + 0.8 * (old - old_min) / old_span. RPM is real wheel speed: unchanged, limit 150-700.
+    # NEW MACHINE (measured): pan 50 (left edge) - 900 (right edge), tilt 50 (60 kph good length) - 850 (10 m at 110 kph),
+    # L/R tilt 400-600 (constant 500 for straight balls; only spin would move it). RPM limit unchanged.
     SAFETY_RANGES = {
         'rpm': {'min': 150, 'max': 700},
-        'pan': {'min': 100, 'max': 900},
-        'tilt': {'min': 100, 'max': 900},
-        'left_right_tilt': {'min': 100, 'max': 900}
+        'pan': {'min': 50, 'max': 900},
+        'tilt': {'min': 50, 'max': 850},
+        'left_right_tilt': {'min': 400, 'max': 600}
     }
+
+    # Spin is switched off for now: every spin level produces the spin-0 settings,
+    # and Left/Right tilt stays at the speed baseline (the controller also skips L/R tilt drift).
+    SPIN_ENABLED = False
+
+    # Swing: each level moves one wheel up and the other down by this many RPM
+    SWING_RPM_PER_LEVEL = 30
 
     pos_coords = {
         'centre - 0': {'x': 150, 'y': 40},
@@ -61,41 +68,56 @@ def generate_minimal_bowling_dataset_with_rpm_map(
         'top-mid-right-7': {'x': 300, 'y': 25}
     }
 
+    # Measured on the new machine: good length, stump line (centre X150/Y40), straight ball
     CENTRE_BASELINES = {
-        60:  {'Pan': 346.2, 'Tilt': 716.5, 'Left_Tilt': 534.8, 'Right_Tilt': 534.8},
-        70:  {'Pan': 346.2, 'Tilt': 716.5, 'Left_Tilt': 465.2, 'Right_Tilt': 465.2},
-        80:  {'Pan': 346.2, 'Tilt': 716.5, 'Left_Tilt': 430.4, 'Right_Tilt': 430.4},
-        90:  {'Pan': 346.2, 'Tilt': 716.5, 'Left_Tilt': 360.9, 'Right_Tilt': 360.9},
-        100: {'Pan': 346.2, 'Tilt': 716.5, 'Left_Tilt': 360.9, 'Right_Tilt': 360.9},
-        110: {'Pan': 346.2, 'Tilt': 716.5, 'Left_Tilt': 343.5, 'Right_Tilt': 343.5},
-        120: {'Pan': 346.2, 'Tilt': 716.5, 'Left_Tilt': 343.5, 'Right_Tilt': 343.5},
-        130: {'Pan': 346.2, 'Tilt': 716.5, 'Left_Tilt': 343.5, 'Right_Tilt': 343.5},
-        140: {'Pan': 346.2, 'Tilt': 716.5, 'Left_Tilt': 343.5, 'Right_Tilt': 343.5},
-        150: {'Pan': 346.2, 'Tilt': 716.5, 'Left_Tilt': 343.5, 'Right_Tilt': 343.5},
-        160: {'Pan': 346.2, 'Tilt': 735.3, 'Left_Tilt': 343.5, 'Right_Tilt': 343.5},
+        60:  {'Pan': 500.0, 'Tilt': 50.0,  'Left_Tilt': 600.0, 'Right_Tilt': 600.0},
+        70:  {'Pan': 500.0, 'Tilt': 50.0,  'Left_Tilt': 600.0, 'Right_Tilt': 600.0},
+        80:  {'Pan': 500.0, 'Tilt': 200.0, 'Left_Tilt': 500.0, 'Right_Tilt': 500.0},
+        90:  {'Pan': 500.0, 'Tilt': 300.0, 'Left_Tilt': 500.0, 'Right_Tilt': 500.0},
+        100: {'Pan': 500.0, 'Tilt': 400.0, 'Left_Tilt': 500.0, 'Right_Tilt': 500.0},
+        110: {'Pan': 500.0, 'Tilt': 525.0, 'Left_Tilt': 500.0, 'Right_Tilt': 500.0},
+        120: {'Pan': 500.0, 'Tilt': 550.0, 'Left_Tilt': 500.0, 'Right_Tilt': 500.0},
+        130: {'Pan': 500.0, 'Tilt': 650.0, 'Left_Tilt': 500.0, 'Right_Tilt': 500.0},
+        140: {'Pan': 500.0, 'Tilt': 700.0, 'Left_Tilt': 500.0, 'Right_Tilt': 500.0},
+        150: {'Pan': 500.0, 'Tilt': 750.0, 'Left_Tilt': 500.0, 'Right_Tilt': 500.0},
     }
 
-    # Symmetric pan deltas (±200) so left/right magnitudes match
+    # Line: measured at 110 kph good length -> left edge (X0) pan 50, stump (X150) 500, right edge (X300) 900
     pan_delta = {
         'centre - 0': 0,
         'top- 1': 0,
-        'left - 2': -307.7,
-        'right - 3': +307.7,
+        'left - 2': -450,
+        'right - 3': +400,
         'bottom - 4': 0,
         'top-mid-centre-5': 0,
-        'top-mid-left-6': -307.7,
-        'top-mid-right-7': +307.7
+        'top-mid-left-6': -450,
+        'top-mid-right-7': +400
     }
 
-    lr_tilt_delta = {
+    # Length (NEW): measured at 110 kph stump line -> 1 m (Y8) tilt 150, good (Y40) 525, 10 m (Y80) 850.
+    # Y = 8 x metres from the batsman. Piecewise-linear through the three measured points
+    # (11.72 tilt per Y unit fuller than good, 8.125 per Y unit shorter). Same offsets applied at every speed.
+    tilt_delta = {
         'centre - 0': 0,
-        'top- 1': +104.3,
+        'top- 1': -410.2,          # Y5  (0.6 m) - extrapolated slightly past the 1 m measurement
         'left - 2': 0,
         'right - 3': 0,
-        'bottom - 4': -139.1,
-        'top-mid-centre-5': +69.6,
-        'top-mid-left-6': +69.6,
-        'top-mid-right-7': +69.6
+        'bottom - 4': +325.0,      # Y80 (10 m)
+        'top-mid-centre-5': -175.8,  # Y25 (3.1 m)
+        'top-mid-left-6': -175.8,
+        'top-mid-right-7': -175.8
+    }
+
+    # L/R tilt stays constant across line and length on the new machine
+    lr_tilt_delta = {
+        'centre - 0': 0,
+        'top- 1': 0,
+        'left - 2': 0,
+        'right - 3': 0,
+        'bottom - 4': 0,
+        'top-mid-centre-5': 0,
+        'top-mid-left-6': 0,
+        'top-mid-right-7': 0
     }
 
     # Speed-grouped shared knobs (PRESET CONFIGS FROM paste.txt)
@@ -103,45 +125,45 @@ def generate_minimal_bowling_dataset_with_rpm_map(
     SPEED_GROUPS = {
         'G1_60_70': {
             'speeds': [60, 70],
-            'swing_pan_base': 18.5,
+            'swing_pan_base': 25.5,
             'swing_pan_threshold': 3,
-            'swing_pan_extra_per_level': 3.08,
-            'tilt_additive_bias': -70.59,
+            'swing_pan_extra_per_level': 4.25,
+            'tilt_additive_bias': 0,
             'tilt_spin_multiplier': 1.15,
-            'lr_tilt_additive_bias': -69.6,
+            'lr_tilt_additive_bias': 0,
             'lr_tilt_offset_multiplier': 1.5,
             'enhanced_tilt_per_level': 69.6,
             'spin_pan_effect_multiplier': 6.15
         },
          'G2_80': {
             'speeds': [80],
-            'swing_pan_base': 15.4,
+            'swing_pan_base': 21.3,
             'swing_pan_threshold': 3,
-            'swing_pan_extra_per_level': 3.08,
-            'tilt_additive_bias': 164.71,
+            'swing_pan_extra_per_level': 4.25,
+            'tilt_additive_bias': 0,
             'tilt_spin_multiplier': 1.08,
-            'lr_tilt_additive_bias': -156.5,
+            'lr_tilt_additive_bias': 0,
             'lr_tilt_offset_multiplier': 1.5,
             'enhanced_tilt_per_level': 69.6,
             'spin_pan_effect_multiplier': 6.15
         },
         'G3_90_100': {
             'speeds': [90, 100],
-            'swing_pan_base': 18.5,
+            'swing_pan_base': 25.5,
             'swing_pan_threshold': 3,
             'swing_pan_extra_per_level': 0,
-            'tilt_additive_bias': 117.65,
+            'tilt_additive_bias': 0,
             'tilt_spin_multiplier': 1.0,
-            'lr_tilt_additive_bias': -104.3,
+            'lr_tilt_additive_bias': 0,
             'lr_tilt_offset_multiplier': 1.5,
             'enhanced_tilt_per_level': 69.6,
             'spin_pan_effect_multiplier': 6.15
         },
         'G4_110_120': {
             'speeds': [110, 120],
-            'swing_pan_base': 18.5,
+            'swing_pan_base': 25.5,
             'swing_pan_threshold': 3,
-            'swing_pan_extra_per_level': 3.08,
+            'swing_pan_extra_per_level': 4.25,
             'tilt_additive_bias': 0,
             'tilt_spin_multiplier': 1.0,
             'lr_tilt_additive_bias': 0,
@@ -151,9 +173,9 @@ def generate_minimal_bowling_dataset_with_rpm_map(
         },
         'G5_130_140': {
             'speeds': [130, 140],
-            'swing_pan_base': 18.5,
+            'swing_pan_base': 25.5,
             'swing_pan_threshold': 3,
-            'swing_pan_extra_per_level': 3.08,
+            'swing_pan_extra_per_level': 4.25,
             'tilt_additive_bias': 0,
             'tilt_spin_multiplier': 1.0,
             'lr_tilt_additive_bias': 0,
@@ -163,9 +185,9 @@ def generate_minimal_bowling_dataset_with_rpm_map(
         },
         'G6_150_160': {
             'speeds': [150, 160],
-            'swing_pan_base': 18.5,
+            'swing_pan_base': 25.5,
             'swing_pan_threshold': 3,
-            'swing_pan_extra_per_level': 3.08,
+            'swing_pan_extra_per_level': 4.25,
             'tilt_additive_bias': 0,
             'tilt_spin_multiplier': 1.0,
             'lr_tilt_additive_bias': 0,
@@ -192,9 +214,9 @@ def generate_minimal_bowling_dataset_with_rpm_map(
                 return g
         # default if any is missed
         return {
-            'swing_pan_base': 15.4,
+            'swing_pan_base': 21.3,
             'swing_pan_threshold': 3,
-            'swing_pan_extra_per_level': 3.08,
+            'swing_pan_extra_per_level': 4.25,
             'tilt_additive_bias': 0,
             'tilt_spin_multiplier': 1.0,
             'lr_tilt_additive_bias': 0,
@@ -204,6 +226,8 @@ def generate_minimal_bowling_dataset_with_rpm_map(
         }
 
     def calculate_machine_values(speed, swing_level, spin_level, position):
+        if not SPIN_ENABLED:
+            spin_level = 0
         coords = pos_coords[position]
         c = CENTRE_BASELINES[speed]
         base_rpm = float(speed_rpm_map[speed])
@@ -218,9 +242,9 @@ def generate_minimal_bowling_dataset_with_rpm_map(
         swing_pan_effect = swing_pan_base * swing_level  # signed
 
         base_pan = c['Pan'] + pan_delta[position]
-        base_tilt = c['Tilt']
+        base_tilt = c['Tilt'] + tilt_delta[position]
 
-        max_offset = max(lr_tilt_delta.values())
+        max_offset = max(lr_tilt_delta.values()) or 1  # all offsets are 0 now; avoid divide-by-zero
 
         # Apply lr_tilt_offset_multiplier to position-based tilt offsets
         left_offset = lr_tilt_delta[position]
@@ -232,14 +256,12 @@ def generate_minimal_bowling_dataset_with_rpm_map(
         base_left_tilt = c['Left_Tilt'] + left_change
         base_right_tilt = c['Right_Tilt'] + right_change
 
-        # === RPM LOGIC - PRESERVE AVERAGE (unchanged) ===
+        # === RPM LOGIC - PRESERVE AVERAGE ===
+        # Fixed 30 RPM per swing level on each wheel (was a random 20-30 per speed/position)
         if swing_level == 0:
             left_rpm = right_rpm = base_rpm
         else:
-            key = f"{speed}:{position}"
-            seed = abs(hash(key)) % (2**32)
-            rng = np.random.default_rng(seed)
-            delta_per_level = int(rng.integers(20, 31))
+            delta_per_level = SWING_RPM_PER_LEVEL
             total_delta = delta_per_level * abs(swing_level)
             if swing_level > 0:
                 left_rpm = base_rpm + total_delta
@@ -343,7 +365,9 @@ def generate_minimal_bowling_dataset_with_rpm_map(
                 'NEW: spin_pan_effect_multiplier per speed group (configurable)',
                 'RPM logic unchanged'
             ],
-            'speed_groups': speed_groups_serializable
+            'speed_groups': speed_groups_serializable,
+            'spin_enabled': SPIN_ENABLED,
+            'swing_rpm_per_level': SWING_RPM_PER_LEVEL
         },
         'applied_settings': {
             'rpm_map_default_used': False,
@@ -371,75 +395,75 @@ def generate_minimal_bowling_dataset_with_rpm_map(
 
 
 if __name__ == "__main__":
+    # Measured on the new machine (straight ball, centre): left RPM = right RPM
     machine_rpm_map = {
-        60: 205.0,
-         70: 240.0, 
-         80: 270.0, 
-         90: 300.0, 
-         100: 350.0,
-        110: 395.0, 
-        120: 380.0, 
-        130: 420.0, 
-        140: 480.0, 
-        150: 520.0, 
-        160: 550.0
+        60: 269.0,
+        70: 320.0,
+        80: 340.0,
+        90: 360.0,
+        100: 380.0,
+        110: 400.0,
+        120: 430.0,
+        130: 465.0,
+        140: 500.0,
+        150: 530.0,
     }
 
     # Example: Override speed group tuning
     custom_speed_group_tuning = {
      'G1_60_70': {
             'speeds': [60, 70],
-            'swing_pan_base': 18.5,
+            'swing_pan_base': 25.5,
             'swing_pan_threshold': 3,
-            'swing_pan_extra_per_level': 3.08,
-            'tilt_additive_bias': -70.59,
+            'swing_pan_extra_per_level': 4.25,
+            'tilt_additive_bias': 0,
             'tilt_spin_multiplier': 1.15,
-            'lr_tilt_additive_bias': -69.6,
+            'lr_tilt_additive_bias': 0,
             'lr_tilt_offset_multiplier': 1.5,
             'enhanced_tilt_per_level': 69.6,
             'spin_pan_effect_multiplier': 6.15
         },
         'G2_80': {
             'speeds': [80],
-            'swing_pan_base': 15.4,
+            'swing_pan_base': 21.3,
             'swing_pan_threshold': 3,
-            'swing_pan_extra_per_level': 3.08,
-            'tilt_additive_bias': 164.71,
+            'swing_pan_extra_per_level': 4.25,
+            'tilt_additive_bias': 0,
             'tilt_spin_multiplier': 1.08,
-            'lr_tilt_additive_bias': -104.3,
+            'lr_tilt_additive_bias': 0,
             'lr_tilt_offset_multiplier': 1.5,
             'enhanced_tilt_per_level': 69.6,
             'spin_pan_effect_multiplier': 6.15
         },
         'G3_90_100': {
             'speeds': [90, 100],
-            'swing_pan_base': 18.5,
+            'swing_pan_base': 25.5,
             'swing_pan_threshold': 3,
             'swing_pan_extra_per_level': 0,
-            'tilt_additive_bias': 117.65,
+            'tilt_additive_bias': 0,
             'tilt_spin_multiplier': 1.0,
-            'lr_tilt_additive_bias': -104.3,
+            'lr_tilt_additive_bias': 0,
             'lr_tilt_offset_multiplier': 1.5,
             'enhanced_tilt_per_level': 69.6,
             'spin_pan_effect_multiplier': 6.15
         },
         'G4_110_120': {
             'speeds': [110, 120],
-            'swing_pan_base': 18.5,
+            'swing_pan_base': 25.5,
             'swing_pan_threshold': 3,
-            'swing_pan_extra_per_level': 3.08,
-            'tilt_additive_bias': -18.82,
+            'swing_pan_extra_per_level': 4.25,
+            'tilt_additive_bias': 0,
             'tilt_spin_multiplier': 1.0,
-            'lr_tilt_additive_bias': -27.8,
+            'lr_tilt_additive_bias': 0,
             'lr_tilt_offset_multiplier': 1.5,
             'enhanced_tilt_per_level': 69.6,
             'spin_pan_effect_multiplier': 6.15
         },
         'G5_130_140': {
             'speeds': [130, 140],
-            'swing_pan_base': 18.5,
+            'swing_pan_base': 25.5,
             'swing_pan_threshold': 3,
-            'swing_pan_extra_per_level': 3.08,
+            'swing_pan_extra_per_level': 4.25,
             'tilt_additive_bias': 0,
             'tilt_spin_multiplier': 1.0,
             'lr_tilt_additive_bias': 0,
@@ -449,9 +473,9 @@ if __name__ == "__main__":
         },
         'G6_150_160': {
             'speeds': [150, 160],
-            'swing_pan_base': 18.5,
+            'swing_pan_base': 25.5,
             'swing_pan_threshold': 3,
-            'swing_pan_extra_per_level': 3.08,
+            'swing_pan_extra_per_level': 4.25,
             'tilt_additive_bias': 0,
             'tilt_spin_multiplier': 1.0,
             'lr_tilt_additive_bias': 0,
@@ -474,8 +498,8 @@ if __name__ == "__main__":
     print("VERIFICATION: Speed 110, Swing +3, Spin 0, Centre")
     test_data = result['data']['110_kmph']['swing_levels']['swing_level_3']['spin_levels']['spin_level_0']['positions']['centre - 0']
     avg_rpm = (test_data['L_RPM'] + test_data['R_RPM']) / 2
-    print(f"Base RPM: 350.0")
+    print(f"Base RPM: {machine_rpm_map[110]}")
     print(f"L_RPM: {test_data['L_RPM']}, R_RPM: {test_data['R_RPM']}")
-    print(f"Average: {avg_rpm} (should equal 350.0)")
+    print(f"Average: {avg_rpm} (should equal {machine_rpm_map[110]})")
     print(f"Pan: {test_data['Pan']} (should show swing effect)")
     print("="*60)

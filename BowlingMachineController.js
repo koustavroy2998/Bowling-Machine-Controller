@@ -27,10 +27,10 @@ class BowlingMachineController {
     };
 
     this.safety = {
-      // Machine units remapped to 100-900 (full old ranges: L/R tilt 400-2700, pan 2500-3800, tilt 500-3900)
-      leftRightTilt: { min: 100, max: 900 },
-      pan: { min: 100, max: 900 },
-      tilt: { min: 100, max: 900 },
+      // New machine (measured): L/R tilt 400-600 (500 for straight balls), pan 50-900, tilt 50-850
+      leftRightTilt: { min: 400, max: 600 },
+      pan: { min: 50, max: 900 },
+      tilt: { min: 50, max: 850 },
       wideLine: { RHB: { min: 60, max: 160 }, LHB: { min: 140, max: 260 } },
     };
 
@@ -173,7 +173,7 @@ class BowlingMachineController {
       leftRPM: null, rightRPM: null,
     };
 
-    this.SUPPORTED_SPEEDS = [60, 70, 80, 90, 100, 110, 120, 130, 140, 150, 160];
+    this.SUPPORTED_SPEEDS = [60, 70, 80, 90, 100, 110, 120, 130, 140, 150];  // 160 not measured on the new machine
 
     this.loadJsonData();
   }
@@ -617,8 +617,10 @@ class BowlingMachineController {
     const LRT_MIN = this.safety.leftRightTilt.min, LRT_MAX = this.safety.leftRightTilt.max;
     // Resolve speed-specific (or default) drift ranges
     const tltR = this._getCalRange('tiltDrift', ballSpeed, level);
-    const ltrR = this._getCalRange('leftTiltDrift', ballSpeed, level);
-    const rtrR = this._getCalRange('rightTiltDrift', ballSpeed, level);
+    // When the dataset has spin switched off, Left/Right tilt must stay constant: no L/R drift.
+    const spinEnabled = this.jsonData?.generation_metadata?.spin_enabled !== false;
+    const ltrR = spinEnabled ? this._getCalRange('leftTiltDrift', ballSpeed, level) : null;
+    const rtrR = spinEnabled ? this._getCalRange('rightTiltDrift', ballSpeed, level) : null;
 
     if (tltR) {
       out.tilt = driftField(settings.tilt, tltR, last.tilt, TLT_MIN, TLT_MAX);
@@ -778,8 +780,8 @@ class BowlingMachineController {
   calculateConfidenceScore(points, tolerance) { const avg = points.reduce((s, p) => s + p.distance, 0) / points.length; const maxW = Math.max(...points.map(p => p.weight || p.w || 1)); return Math.round((Math.max(0, 100 - (avg / tolerance) * 30) + Math.min(100, maxW * 20)) / 2); }
   calculateAccuracyScore(points, tX, tY) { const avg = points.reduce((s, p) => s + p.distance, 0) / points.length; const rt = this.getRegionTolerance(tY); return Math.min(100, Math.max(0, 100 - (avg / rt) * 15) + Math.min(10, points.length * 2)); }
   getRegionName(y) { if (y <= 15) return 'ULTRA_PRECISION_TOP_EDGE'; if (y <= 35) return 'HIGH_PRECISION_TOP'; if (y <= 60) return 'MEDIUM_PRECISION_MIDDLE'; return 'STANDARD_PRECISION_BOTTOM'; }
-  // L/R tilt anchors mapped 400-2700 -> 100-900, i.e. 100 + 0.8*(old-400)/2.3 (was 1500/1400/1200/800)
-  midTiltAnchor(y) { const pts = [{ y: 5, m: 482.6 }, { y: 25, m: 447.8 }, { y: 40, m: 378.3 }, { y: 80, m: 239.1 }]; if (y <= pts[0].y) return pts[0].m; if (y >= pts[pts.length - 1].y) return pts[pts.length - 1].m; for (let i = 0; i < pts.length - 1; i++) { const a = pts[i], b = pts[i + 1]; if (y >= a.y && y <= b.y) return a.m + (y - a.y) / (b.y - a.y) * (b.m - a.m); } return 378.3; }
+  // New machine: L/R tilt is constant (500) across length, so the anchor is flat
+  midTiltAnchor(y) { const pts = [{ y: 5, m: 500 }, { y: 25, m: 500 }, { y: 40, m: 500 }, { y: 80, m: 500 }]; if (y <= pts[0].y) return pts[0].m; if (y >= pts[pts.length - 1].y) return pts[pts.length - 1].m; for (let i = 0; i < pts.length - 1; i++) { const a = pts[i], b = pts[i + 1]; if (y >= a.y && y <= b.y) return a.m + (y - a.y) / (b.y - a.y) * (b.m - a.m); } return 500; }
   getMaxLRTiltForY(y, speed, swingLevel, spinLevel) { if (y <= 40) return null; const ld = this.jsonData.data[`${speed}_kmph`].swing_levels[`swing_level_${swingLevel}`].spin_levels[`spin_level_${spinLevel}`]; const c = ld.positions['centre - 0'], bm = ld.positions['bottom - 4']; const t = (y - 40) / 40; return { maxLeft: c.Left_Tilt + t * (bm.Left_Tilt - c.Left_Tilt), maxRight: c.Right_Tilt + t * (bm.Right_Tilt - c.Right_Tilt) }; }
   anisotropicDistance(ax, ay, bx, by) { const yAvg = (ay + by) / 2; const yScale = yAvg >= 60 ? 1.5 : yAvg >= 35 ? 1.2 : 1.0; return Math.hypot(ax - bx, (ay - by) * yScale); }
 
