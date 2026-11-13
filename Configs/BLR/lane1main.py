@@ -62,7 +62,12 @@ def generate_minimal_bowling_dataset_with_rpm_map(
     SPIN_RPM_BOOST = {0: 0, 1: 10, 2: 10, 3: 20, 4: 20, 5: 20}
 
     # Swing: each level moves one wheel up and the other down by this many RPM
-    SWING_RPM_PER_LEVEL = 30
+    SWING_RPM_PER_LEVEL = 20
+
+    # Swing -> pan: no pan shift up to this swing level; above it, pan shifts SWING_PAN_PER_LEVEL
+    # for each further level, in the swing's direction (level 3: ±120, 4: ±240, 5: ±360)
+    SWING_PAN_FREE_LEVELS = 2
+    SWING_PAN_PER_LEVEL = 120
 
     pos_coords = {
         'centre - 0': {'x': 150, 'y': 40},
@@ -240,13 +245,12 @@ def generate_minimal_bowling_dataset_with_rpm_map(
         base_rpm = float(speed_rpm_map[speed])
         gp = group_params_for_speed(speed)
 
-        # === PAN with grouped swing overlay (shared knobs) ===
-        # ΔPan_swing = s * (b + max(0, |s|-T)*E)
+        # === PAN swing shift (new machine) ===
+        # ΔPan_swing = sign(s) * max(0, |s| - FREE) * PER_LEVEL  -> 0 for levels 1-2, ±120/±240/±360 for 3/4/5
+        # (the speed-group swing_pan_* knobs are no longer used)
         s_abs = abs(swing_level)
-        swing_pan_base = gp['swing_pan_base']
-        if s_abs >= gp['swing_pan_threshold']:
-            swing_pan_base += (s_abs - gp['swing_pan_threshold']) * gp['swing_pan_extra_per_level']
-        swing_pan_effect = swing_pan_base * swing_level  # signed
+        swing_sign = 1 if swing_level > 0 else -1
+        swing_pan_effect = swing_sign * max(0, s_abs - SWING_PAN_FREE_LEVELS) * SWING_PAN_PER_LEVEL
 
         base_pan = c['Pan'] + pan_delta[position]
         base_tilt = c['Tilt'] + tilt_delta[position]
@@ -372,7 +376,9 @@ def generate_minimal_bowling_dataset_with_rpm_map(
             'spin_enabled': SPIN_ENABLED,
             'spin_lr_tilt_per_level': SPIN_LR_TILT_PER_LEVEL,
             'spin_rpm_boost': SPIN_RPM_BOOST,
-            'swing_rpm_per_level': SWING_RPM_PER_LEVEL
+            'swing_rpm_per_level': SWING_RPM_PER_LEVEL,
+            'swing_pan_free_levels': SWING_PAN_FREE_LEVELS,
+            'swing_pan_per_level': SWING_PAN_PER_LEVEL
         },
         'applied_settings': {
             'rpm_map_default_used': False,

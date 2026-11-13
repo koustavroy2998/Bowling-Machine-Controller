@@ -710,6 +710,16 @@
         document.addEventListener('DOMContentLoaded', function() {
             initializeController();
             
+            // Swing and spin are exclusive: picking a non-zero level for one resets the other to 0
+            const swingSel = document.getElementById('swingLevel');
+            const spinSel = document.getElementById('spinLevel');
+            swingSel.addEventListener('change', function() {
+                if (parseInt(swingSel.value) !== 0) spinSel.value = '0';
+            });
+            spinSel.addEventListener('change', function() {
+                if (parseInt(spinSel.value) !== 0) swingSel.value = '0';
+            });
+
             // Add real-time updates when inputs change
             ['speed', 'x', 'y', 'swingLevel', 'spinLevel'].forEach(id => {
                 document.getElementById(id).addEventListener('input', function() {
