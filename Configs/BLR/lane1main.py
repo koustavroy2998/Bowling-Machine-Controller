@@ -42,17 +42,24 @@ def generate_minimal_bowling_dataset_with_rpm_map(
     ]
 
     # NEW MACHINE (measured): pan 50 (left edge) - 900 (right edge), tilt 50 (60 kph good length) - 850 (10 m at 110 kph),
-    # L/R tilt 400-600 (constant 500 for straight balls; only spin would move it). RPM limit unchanged.
+    # L/R tilt 100-950 (straight-ball base 500, 600 at 60/70 kph; only spin moves it). RPM limit unchanged.
     SAFETY_RANGES = {
         'rpm': {'min': 150, 'max': 700},
         'pan': {'min': 50, 'max': 900},
         'tilt': {'min': 50, 'max': 850},
-        'left_right_tilt': {'min': 400, 'max': 600}
+        'left_right_tilt': {'min': 100, 'max': 950}
     }
 
-    # Spin is switched off for now: every spin level produces the spin-0 settings,
-    # and Left/Right tilt stays at the speed baseline (the controller also skips L/R tilt drift).
-    SPIN_ENABLED = False
+    # Spin ON. With spin off (False) every spin level produces the spin-0 settings and L/R tilt never moves.
+    SPIN_ENABLED = True
+
+    # Spin -> L/R tilt: each spin level moves L/R tilt by this much from the speed's base.
+    # Negative spin lowers Left and raises Right (spin -1: 400/600, -2: 300/700 at base 500);
+    # positive spin is the reverse (spin +1: 600/400). Only spin moves L/R tilt.
+    SPIN_LR_TILT_PER_LEVEL = 100
+
+    # Spin -> RPM: added to BOTH wheels, by |spin level| (flat per band: levels 1-2 +10, levels 3-5 +20)
+    SPIN_RPM_BOOST = {0: 0, 1: 10, 2: 10, 3: 20, 4: 20, 5: 20}
 
     # Swing: each level moves one wheel up and the other down by this many RPM
     SWING_RPM_PER_LEVEL = 30
@@ -270,9 +277,13 @@ def generate_minimal_bowling_dataset_with_rpm_map(
                 left_rpm = base_rpm - total_delta
                 right_rpm = base_rpm + total_delta
 
-        # === SPIN EFFECTS (left/right separation + grouped params) ===
-        spin_pan_effect = spin_level * gp['spin_pan_effect_multiplier'] if spin_level != 0 else 0
-        spin_tilt_effect = (spin_level * 1.176 * gp['tilt_spin_multiplier']) if spin_level != 0 else 0
+        # === SPIN EFFECTS (new machine) ===
+        # Spin only changes L/R tilt and adds RPM to both wheels; pan and machine tilt are not touched.
+        spin_pan_effect = 0
+        spin_tilt_effect = 0
+        spin_rpm_boost = SPIN_RPM_BOOST[abs(spin_level)]
+        left_rpm += spin_rpm_boost
+        right_rpm += spin_rpm_boost
 
         # === No swing-induced L/R tilt asymmetry ===
         swing_left_tilt_boost = 0
@@ -281,8 +292,9 @@ def generate_minimal_bowling_dataset_with_rpm_map(
         # === FINAL VALUES with grouped overlays ===
         final_pan = base_pan + swing_pan_effect + spin_pan_effect + pan_offset
         final_tilt = base_tilt + spin_tilt_effect + tilt_offset + gp['tilt_additive_bias']
-        final_left_tilt = base_left_tilt + (spin_level * gp['enhanced_tilt_per_level']) + swing_left_tilt_boost
-        final_right_tilt = base_right_tilt + (-spin_level * gp['enhanced_tilt_per_level']) + swing_right_tilt_boost
+        # Negative spin: Left down, Right up. Positive spin: Left up, Right down.
+        final_left_tilt = base_left_tilt + (spin_level * SPIN_LR_TILT_PER_LEVEL) + swing_left_tilt_boost
+        final_right_tilt = base_right_tilt - (spin_level * SPIN_LR_TILT_PER_LEVEL) + swing_right_tilt_boost
 
         # Apply LR tilt additive bias equally to both
         final_left_tilt += gp.get('lr_tilt_additive_bias', 0)
@@ -296,15 +308,6 @@ def generate_minimal_bowling_dataset_with_rpm_map(
         final_left_rpm = clamp(left_rpm, 'rpm')
         final_right_rpm = clamp(right_rpm, 'rpm')
 
-        # Ensure spin separation visibility in data rows
-        if spin_level != 0 and abs(final_left_tilt - final_right_tilt) < 6.96:
-            adjust = 6.96
-            if spin_level > 0:
-                final_left_tilt = clamp(final_left_tilt + adjust, 'left_right_tilt')
-                final_right_tilt = clamp(final_right_tilt - adjust, 'left_right_tilt')
-            else:
-                final_left_tilt = clamp(final_left_tilt - adjust, 'left_right_tilt')
-                final_right_tilt = clamp(final_right_tilt + adjust, 'left_right_tilt')
 
         return {
             'L_RPM': round(final_left_rpm, 1),
@@ -314,9 +317,9 @@ def generate_minimal_bowling_dataset_with_rpm_map(
             'Tilt': round(final_tilt, 1),
             'Tilt_actual': round(final_tilt + np.random.uniform(-0.71, 0.71), 1),
             'Left_Tilt': round(final_left_tilt, 1),
-            'Left_Tilt_Actual': round(final_left_tilt + np.random.uniform(-1.04, 1.04), 1),
+            'Left_Tilt_Actual': round(final_left_tilt, 1),   # no noise: L/R tilt is exact
             'Right_Tilt': round(final_right_tilt, 1),
-            'Right_Tilt_Actual': round(final_right_tilt + np.random.uniform(-1.04, 1.04), 1),
+            'Right_Tilt_Actual': round(final_right_tilt, 1),  # no noise: L/R tilt is exact
             'X': coords['x'],
             'Y': coords['y']
         }
@@ -367,6 +370,8 @@ def generate_minimal_bowling_dataset_with_rpm_map(
             ],
             'speed_groups': speed_groups_serializable,
             'spin_enabled': SPIN_ENABLED,
+            'spin_lr_tilt_per_level': SPIN_LR_TILT_PER_LEVEL,
+            'spin_rpm_boost': SPIN_RPM_BOOST,
             'swing_rpm_per_level': SWING_RPM_PER_LEVEL
         },
         'applied_settings': {

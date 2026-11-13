@@ -27,8 +27,8 @@ class BowlingMachineController {
     };
 
     this.safety = {
-      // New machine (measured): L/R tilt 400-600 (500 for straight balls), pan 50-900, tilt 50-850
-      leftRightTilt: { min: 400, max: 600 },
+      // New machine (measured): L/R tilt 100-950 (500 for straight balls, ±100 per spin level), pan 50-900, tilt 50-850
+      leftRightTilt: { min: 100, max: 950 },
       pan: { min: 50, max: 900 },
       tilt: { min: 50, max: 850 },
       wideLine: { RHB: { min: 60, max: 160 }, LHB: { min: 140, max: 260 } },
@@ -617,10 +617,10 @@ class BowlingMachineController {
     const LRT_MIN = this.safety.leftRightTilt.min, LRT_MAX = this.safety.leftRightTilt.max;
     // Resolve speed-specific (or default) drift ranges
     const tltR = this._getCalRange('tiltDrift', ballSpeed, level);
-    // When the dataset has spin switched off, Left/Right tilt must stay constant: no L/R drift.
-    const spinEnabled = this.jsonData?.generation_metadata?.spin_enabled !== false;
-    const ltrR = spinEnabled ? this._getCalRange('leftTiltDrift', ballSpeed, level) : null;
-    const rtrR = spinEnabled ? this._getCalRange('rightTiltDrift', ballSpeed, level) : null;
+    // Left/Right tilt is set only by the spin level (exactly ±100 per level from the dataset):
+    // no random L/R drift, for any ball. leftTiltDrift/rightTiltDrift calibration is ignored.
+    const ltrR = null;
+    const rtrR = null;
 
     if (tltR) {
       out.tilt = driftField(settings.tilt, tltR, last.tilt, TLT_MIN, TLT_MAX);
