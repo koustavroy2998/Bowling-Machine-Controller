@@ -65,9 +65,9 @@ def generate_minimal_bowling_dataset_with_rpm_map(
     SWING_RPM_PER_LEVEL = 20
 
     # Swing -> pan: no pan shift up to this swing level; above it, pan shifts SWING_PAN_PER_LEVEL
-    # for each further level, in the swing's direction (level 3: ±120, 4: ±240, 5: ±360)
-    SWING_PAN_FREE_LEVELS = 2
-    SWING_PAN_PER_LEVEL = 120
+    # for each further level, opposite to the swing's sign (level -1: +60 ... -5: +300; level +1: -60 ... +5: -300)
+    SWING_PAN_FREE_LEVELS = 0
+    SWING_PAN_PER_LEVEL = 60
 
     pos_coords = {
         'centre - 0': {'x': 150, 'y': 40},
@@ -246,11 +246,12 @@ def generate_minimal_bowling_dataset_with_rpm_map(
         gp = group_params_for_speed(speed)
 
         # === PAN swing shift (new machine) ===
-        # ΔPan_swing = sign(s) * max(0, |s| - FREE) * PER_LEVEL  -> 0 for levels 1-2, ±120/±240/±360 for 3/4/5
+        # ΔPan_swing = sign(s) * max(0, |s| - FREE) * PER_LEVEL  -> ∓60/∓120/∓180/∓240/∓300 for levels 1-5 (negative swing adds, positive subtracts)
         # (the speed-group swing_pan_* knobs are no longer used)
         s_abs = abs(swing_level)
         swing_sign = 1 if swing_level > 0 else -1
-        swing_pan_effect = swing_sign * max(0, s_abs - SWING_PAN_FREE_LEVELS) * SWING_PAN_PER_LEVEL
+        # Negative swing adds to pan, positive swing subtracts from pan
+        swing_pan_effect = -swing_sign * max(0, s_abs - SWING_PAN_FREE_LEVELS) * SWING_PAN_PER_LEVEL
 
         base_pan = c['Pan'] + pan_delta[position]
         base_tilt = c['Tilt'] + tilt_delta[position]
