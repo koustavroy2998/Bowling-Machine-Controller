@@ -15,7 +15,7 @@ def generate_minimal_bowling_dataset_with_rpm_map(
 
     Value for each (speed, swing, spin, position):
       Pan        = measured centre pan + line offset + swing pan offset + pan_offset
-      Tilt       = measured centre tilt + length offset + tilt_offset
+      Tilt       = measured centre tilt + length offset + SWING_TILT_BOOST (swing != 0) + tilt_offset
       Left Tilt  = speed base + spin * SPIN_LR_TILT_PER_LEVEL
       Right Tilt = speed base - spin * SPIN_LR_TILT_PER_LEVEL
       L/R RPM    = speed RPM +/- swing * SWING_RPM_PER_LEVEL, plus SPIN_RPM_BOOST on both wheels
@@ -62,8 +62,11 @@ def generate_minimal_bowling_dataset_with_rpm_map(
     SWING_RPM_PER_LEVEL = 20
 
     # Swing -> pan: this much per swing level, opposite to the swing's sign
-    # (level -1: +60 ... -5: +300; level +1: -60 ... +5: -300)
-    SWING_PAN_PER_LEVEL = 60
+    # (level -1: +80 ... -5: +400; level +1: -80 ... +5: -400)
+    SWING_PAN_PER_LEVEL = 80
+
+    # Swing -> machine tilt: flat amount added for any non-zero swing level (swing balls pitched slightly fuller)
+    SWING_TILT_BOOST = 25
 
     pos_coords = {
         'centre - 0': {'x': 150, 'y': 40},
@@ -130,8 +133,10 @@ def generate_minimal_bowling_dataset_with_rpm_map(
         # Pan: line offset, then swing (negative swing adds, positive swing subtracts)
         final_pan = c['Pan'] + pan_delta[position] - swing_level * SWING_PAN_PER_LEVEL + pan_offset
 
-        # Machine tilt: length offset only
+        # Machine tilt: length offset, plus a flat boost for swing balls
         final_tilt = c['Tilt'] + tilt_delta[position] + tilt_offset
+        if swing_level != 0:
+            final_tilt += SWING_TILT_BOOST
 
         # L/R tilt: constant per speed; only spin moves it.
         # Negative spin: Left down, Right up. Positive spin: Left up, Right down.
@@ -203,7 +208,8 @@ def generate_minimal_bowling_dataset_with_rpm_map(
             'spin_lr_tilt_per_level': SPIN_LR_TILT_PER_LEVEL,
             'spin_rpm_boost': SPIN_RPM_BOOST,
             'swing_rpm_per_level': SWING_RPM_PER_LEVEL,
-            'swing_pan_per_level': SWING_PAN_PER_LEVEL
+            'swing_pan_per_level': SWING_PAN_PER_LEVEL,
+            'swing_tilt_boost': SWING_TILT_BOOST
         },
         'applied_settings': {
             'rpm_map_default_used': False,
