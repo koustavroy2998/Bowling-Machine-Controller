@@ -27,10 +27,10 @@ class BowlingMachineController {
     };
 
     this.safety = {
-      // New machine (measured): L/R tilt 100-950 (500 for straight balls, ±100 per spin level), pan 50-900, tilt 50-850
+      // New machine (measured): L/R tilt 100-950 (500 for straight balls, ±100 per spin level), pan 50-900, tilt 50-950
       leftRightTilt: { min: 100, max: 950 },
       pan: { min: 50, max: 900 },
-      tilt: { min: 50, max: 850 },
+      tilt: { min: 50, max: 950 },
       wideLine: { RHB: { min: 60, max: 160 }, LHB: { min: 140, max: 260 } },
     };
 
