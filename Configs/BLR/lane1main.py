@@ -63,7 +63,7 @@ def generate_minimal_bowling_dataset_with_rpm_map(
 
     # Swing -> pan: this much per swing level, opposite to the swing's sign
     # (level -1: +80 ... -5: +400; level +1: -80 ... +5: -400)
-    SWING_PAN_PER_LEVEL = 80
+    SWING_PAN_PER_LEVEL = 150
 
     # Swing -> machine tilt: flat amount added for any non-zero swing level (swing balls pitched slightly fuller)
     SWING_TILT_BOOST = 25
