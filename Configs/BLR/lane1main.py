@@ -6,28 +6,40 @@ from datetime import datetime
 
 def generate_minimal_bowling_dataset_with_rpm_map(
     speed_rpm_map,
-    pan_offset=0,
-    tilt_offset=0,
+    speed_group_tuning=None,
     output_filename="bowling_data.json"
 ):
     """
     Generates the machine-setting dataset for BLR lane 1 (new machine).
 
     Value for each (speed, swing, spin, position):
-      Pan        = measured centre pan + line offset + swing pan offset + pan_offset
-      Tilt       = measured centre tilt + length offset + SWING_TILT_BOOST (swing != 0) + tilt_offset
-      Left Tilt  = speed base + spin * SPIN_LR_TILT_PER_LEVEL
-      Right Tilt = speed base - spin * SPIN_LR_TILT_PER_LEVEL
+      Pan        = measured centre pan + line offset + swing pan offset + group pan_offset
+      Tilt       = measured centre tilt + length offset + swing_tilt(level) + spin_tilt(level) + group tilt_offset
+      Left Tilt  = speed base + group lr_tilt_offset + spin * group spin_lr_tilt_per_level
+      Right Tilt = speed base + group lr_tilt_offset - spin * group spin_lr_tilt_per_level
       L/R RPM    = speed RPM +/- swing * SWING_RPM_PER_LEVEL, plus SPIN_RPM_BOOST on both wheels
     Everything is clamped to SAFETY_RANGES.
+
+    13 calibration params per speed group (all default to dev-machine values):
+      Alignment:
+        pan_offset          - horizontal machine alignment
+        tilt_offset         - pitch/length calibration
+        lr_tilt_offset      - L/R tilt baseline shift (moves both wheels equally)
+      Swing effects  (level n = base + (n-1)*step; unsigned — always added):
+        swing_pan_base/step   - pan shift per swing level
+        swing_tilt_base/step  - machine tilt added per swing level (fuller pitch)
+      Spin effects:
+        spin_lr_tilt_base/step - L/R tilt separation per spin level (signed: +spin raises Left)
+        spin_tilt_base/step    - machine tilt added per spin level (unsigned — same both directions)
+        spin_pan_base/step     - pan shift per spin level (signed: +spin shifts pan right)
     """
 
     print("🎯 GENERATING BOWLING DATASET (BLR lane 1, new machine)")
     print("=" * 60)
-    print(f"   Pan Offset: {pan_offset}")
-    print(f"   Tilt Offset: {tilt_offset}")
     print(f"   Output File: {output_filename}")
     print(f"   RPM Map: {speed_rpm_map}")
+    if speed_group_tuning:
+        print(f"   Speed Group Tuning Provided: {len(speed_group_tuning)} groups")
     print("=" * 60)
 
     speeds = [60, 70, 80, 90, 100, 110, 120, 130, 140, 150]  # 160 removed: not measured on the new machine
@@ -50,23 +62,51 @@ def generate_minimal_bowling_dataset_with_rpm_map(
     # Spin ON. With spin off (False) every spin level produces the spin-0 settings and L/R tilt never moves.
     SPIN_ENABLED = True
 
-    # Spin -> L/R tilt: each spin level moves L/R tilt by this much from the speed's base.
-    # Negative spin lowers Left and raises Right (spin -1: 400/600, -2: 300/700 at base 500);
-    # positive spin is the reverse (spin +1: 600/400). Only spin moves L/R tilt.
-    SPIN_LR_TILT_PER_LEVEL = 100
-
     # Spin -> RPM: added to BOTH wheels, by |spin level| (flat per band: levels 1-2 +10, levels 3-5 +20)
     SPIN_RPM_BOOST = {0: 0, 1: 10, 2: 10, 3: 20, 4: 20, 5: 20}
 
     # Swing: each level moves one wheel up and the other down by this many RPM
     SWING_RPM_PER_LEVEL = 20
 
-    # Swing -> pan: this much per swing level, opposite to the swing's sign
-    # (level -1: +80 ... -5: +400; level +1: -80 ... +5: -400)
-    SWING_PAN_PER_LEVEL = 150
+    # Per-group calibration: 3 alignment scalars + 5 per-level maps (levels 1–5).
+    # Defaults reproduce the original dev-machine behaviour exactly.
+    #   swing_pan:    how much pan shifts per swing level (signed by direction)
+    #   swing_tilt:   how much machine tilt added per swing level (unsigned, always fuller)
+    #   spin_lr_tilt: L/R tilt separation per spin level (signed)
+    #   spin_tilt:    machine tilt added per spin level (unsigned, same both directions)
+    #   spin_pan:     pan shift per spin level (signed by direction)
+    _LV = {1: 0, 2: 0, 3: 0, 4: 0, 5: 0}
+    _G = {
+        'pan_offset': 0, 'tilt_offset': 0, 'lr_tilt_offset': 0,
+        'swing_pan':    {1: 150, 2: 300, 3: 450, 4: 600, 5: 750},
+        'swing_tilt':   {1: 25,  2: 25,  3: 25,  4: 25,  5: 25},
+        'spin_lr_tilt': {1: 100, 2: 200, 3: 300, 4: 400, 5: 500},
+        'spin_tilt':    {**_LV},
+        'spin_pan':     {**_LV},
+    }
+    SPEED_GROUPS = {
+        'G1_60_70':   {'speeds': [60, 70],  **{k: (dict(v) if isinstance(v, dict) else v) for k, v in _G.items()}},
+        'G2_80':      {'speeds': [80],      **{k: (dict(v) if isinstance(v, dict) else v) for k, v in _G.items()}},
+        'G3_90_100':  {'speeds': [90, 100], **{k: (dict(v) if isinstance(v, dict) else v) for k, v in _G.items()}},
+        'G4_110_120': {'speeds': [110, 120],**{k: (dict(v) if isinstance(v, dict) else v) for k, v in _G.items()}},
+        'G5_130_140': {'speeds': [130, 140],**{k: (dict(v) if isinstance(v, dict) else v) for k, v in _G.items()}},
+        'G6_150':     {'speeds': [150],     **{k: (dict(v) if isinstance(v, dict) else v) for k, v in _G.items()}},
+    }
 
-    # Swing -> machine tilt: flat amount added for any non-zero swing level (swing balls pitched slightly fuller)
-    SWING_TILT_BOOST = 25
+    # Override with user-provided speed group tuning if supplied.
+    # Level-map keys may arrive as strings from JSON — convert to int automatically.
+    if speed_group_tuning:
+        for group_name, user_params in speed_group_tuning.items():
+            if group_name not in SPEED_GROUPS:
+                continue
+            converted = {}
+            for k, v in user_params.items():
+                if isinstance(v, dict):
+                    converted[k] = {int(lv): val for lv, val in v.items()}
+                else:
+                    converted[k] = v
+            SPEED_GROUPS[group_name].update(converted)
+            print(f"✓ Overriding {group_name} with user params: {converted}")
 
     pos_coords = {
         'centre - 0': {'x': 150, 'y': 40},
@@ -123,25 +163,44 @@ def generate_minimal_bowling_dataset_with_rpm_map(
         r = SAFETY_RANGES[key]
         return max(r['min'], min(r['max'], v))
 
+    def group_params_for_speed(spd):
+        for _, g in SPEED_GROUPS.items():
+            if spd in g['speeds']:
+                return g
+        return {k: (dict(v) if isinstance(v, dict) else v) for k, v in _G.items()}
+
+    def lv(level_map, level):
+        """Look up magnitude for a level (0 → 0, else level_map[|level|])."""
+        return 0 if level == 0 else level_map[abs(level)]
+
     def calculate_machine_values(speed, swing_level, spin_level, position):
         if not SPIN_ENABLED:
             spin_level = 0
         coords = pos_coords[position]
         c = CENTRE_BASELINES[speed]
         base_rpm = float(speed_rpm_map[speed])
+        gp = group_params_for_speed(speed)
 
-        # Pan: line offset, then swing (negative swing adds, positive swing subtracts)
-        final_pan = c['Pan'] + pan_delta[position] - swing_level * SWING_PAN_PER_LEVEL + pan_offset
+        s_sign = int(np.sign(swing_level))
+        p_sign = int(np.sign(spin_level))
 
-        # Machine tilt: length offset, plus a flat boost for swing balls
-        final_tilt = c['Tilt'] + tilt_delta[position] + tilt_offset
-        if swing_level != 0:
-            final_tilt += SWING_TILT_BOOST
+        # Pan: line offset − swing pan (signed) + spin pan (signed) + alignment offset
+        final_pan = (c['Pan'] + pan_delta[position]
+                     - s_sign * lv(gp['swing_pan'], swing_level)
+                     + p_sign * lv(gp['spin_pan'],  spin_level)
+                     + gp['pan_offset'])
 
-        # L/R tilt: constant per speed; only spin moves it.
+        # Machine tilt: length offset + swing tilt (unsigned) + spin tilt (unsigned) + alignment offset
+        final_tilt = (c['Tilt'] + tilt_delta[position]
+                      + lv(gp['swing_tilt'], swing_level)
+                      + lv(gp['spin_tilt'],  spin_level)
+                      + gp['tilt_offset'])
+
+        # L/R tilt: lr_tilt_offset shifts baseline; spin separates the wheels (signed).
         # Negative spin: Left down, Right up. Positive spin: Left up, Right down.
-        final_left_tilt = c['Left_Tilt'] + spin_level * SPIN_LR_TILT_PER_LEVEL
-        final_right_tilt = c['Right_Tilt'] - spin_level * SPIN_LR_TILT_PER_LEVEL
+        spin_lr = lv(gp['spin_lr_tilt'], spin_level)
+        final_left_tilt  = c['Left_Tilt']  + gp['lr_tilt_offset'] + p_sign * spin_lr
+        final_right_tilt = c['Right_Tilt'] + gp['lr_tilt_offset'] - p_sign * spin_lr
 
         # RPM: swing splits the wheels (positive swing: Left up, Right down), average stays at base;
         # spin adds the same boost to both wheels
@@ -198,23 +257,28 @@ def generate_minimal_bowling_dataset_with_rpm_map(
                 if processed % 300 == 0:
                     print(f"Progress: {processed}/{total_combinations} combinations")
 
+    speed_groups_serializable = {}
+    for k, v in SPEED_GROUPS.items():
+        entry = {}
+        for pk, pv in v.items():
+            if pk == 'speeds':
+                entry[pk] = list(pv)
+            elif isinstance(pv, dict):
+                entry[pk] = {str(lk): lv for lk, lv in pv.items()}
+            else:
+                entry[pk] = pv
+        speed_groups_serializable[k] = entry
+
     minimal_json_data = {
         'generation_metadata': {
             'generated_timestamp': datetime.now().strftime('%Y-%m-%d %H:%M:%S'),
-            'generator_version': 'v6-new-machine',
+            'generator_version': 'v8-full-group-calibration',
             'total_combinations': total_combinations,
             'safety_ranges': SAFETY_RANGES,
             'spin_enabled': SPIN_ENABLED,
-            'spin_lr_tilt_per_level': SPIN_LR_TILT_PER_LEVEL,
             'spin_rpm_boost': SPIN_RPM_BOOST,
             'swing_rpm_per_level': SWING_RPM_PER_LEVEL,
-            'swing_pan_per_level': SWING_PAN_PER_LEVEL,
-            'swing_tilt_boost': SWING_TILT_BOOST
-        },
-        'applied_settings': {
-            'rpm_map_default_used': False,
-            'pan_offset': pan_offset,
-            'tilt_offset': tilt_offset,
+            'speed_groups': speed_groups_serializable,
         },
         'dataset_parameters': {
             'speeds': speeds,
@@ -251,10 +315,22 @@ if __name__ == "__main__":
         150: 530.0,
     }
 
+    # Override per-group calibration here for each production machine.
+    # Level-map keys are integers 1–5. swing_tilt/spin_tilt unsigned; swing_pan/spin_pan signed by direction.
+    custom_speed_group_tuning = {
+        # 'G1_60_70': {
+        #     'pan_offset': 0, 'tilt_offset': 0, 'lr_tilt_offset': 0,
+        #     'swing_pan':    {1: 150, 2: 300, 3: 450, 4: 600, 5: 750},
+        #     'swing_tilt':   {1: 25,  2: 25,  3: 25,  4: 25,  5: 25},
+        #     'spin_lr_tilt': {1: 100, 2: 200, 3: 300, 4: 400, 5: 500},
+        #     'spin_tilt':    {1: 0,   2: 0,   3: 0,   4: 0,   5: 0},
+        #     'spin_pan':     {1: 0,   2: 0,   3: 0,   4: 0,   5: 0},
+        # },
+    }
+
     result = generate_minimal_bowling_dataset_with_rpm_map(
         speed_rpm_map=machine_rpm_map,
-        pan_offset=0,
-        tilt_offset=0,
+        speed_group_tuning=custom_speed_group_tuning,
         output_filename="pitch-mapping.json"
     )
 

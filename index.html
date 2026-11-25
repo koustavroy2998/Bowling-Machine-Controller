@@ -298,6 +298,246 @@
             background: #fff3cd;
             color: #856404;
         }
+
+        /* ── Calibration section ── */
+        .calib-section {
+            background: #f0f4ff;
+            border: 1px solid #c5d0f0;
+            border-radius: 10px;
+            margin-bottom: 20px;
+            overflow: hidden;
+        }
+
+        .calib-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 14px 20px;
+            cursor: pointer;
+            user-select: none;
+            background: #e8eeff;
+            border-bottom: 1px solid #c5d0f0;
+        }
+
+        .calib-header:hover { background: #dde4ff; }
+
+        .calib-header h3 {
+            margin: 0;
+            color: #3730a3;
+            font-size: 1.05em;
+        }
+
+        .calib-toggle {
+            font-size: 1.2em;
+            color: #3730a3;
+            transition: transform 0.2s;
+        }
+
+        .calib-toggle.open { transform: rotate(180deg); }
+
+        .calib-body { padding: 20px; display: none; }
+        .calib-body.open { display: block; }
+
+        .calib-table-wrap { overflow-x: auto; }
+
+        .calib-table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 13.5px;
+        }
+
+        .calib-table th {
+            background: #3730a3;
+            color: white;
+            padding: 8px 10px;
+            text-align: center;
+            white-space: nowrap;
+        }
+
+        .calib-table td {
+            padding: 6px 8px;
+            border-bottom: 1px solid #dde4ff;
+            text-align: center;
+            white-space: nowrap;
+        }
+
+        .calib-table tr:nth-child(even) td { background: #f5f7ff; }
+
+        .calib-table td:first-child,
+        .calib-table td:nth-child(2) {
+            font-weight: 600;
+            color: #3730a3;
+            text-align: left;
+        }
+
+        .calib-table input[type=number] {
+            width: 72px;
+            padding: 4px 6px;
+            border: 1px solid #c5d0f0;
+            border-radius: 5px;
+            font-size: 13px;
+            text-align: center;
+        }
+
+        .calib-table input[type=number]:focus {
+            outline: none;
+            border-color: #3730a3;
+            box-shadow: 0 0 0 2px rgba(55,48,163,0.15);
+        }
+
+        .rpm-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
+            gap: 10px;
+            margin-top: 14px;
+        }
+
+        .rpm-item label {
+            font-size: 12px;
+            font-weight: 600;
+            color: #4a5568;
+            margin-bottom: 4px;
+        }
+
+        .rpm-item input {
+            width: 100%;
+            padding: 6px;
+            border: 1px solid #c5d0f0;
+            border-radius: 5px;
+            font-size: 13px;
+            text-align: center;
+            box-sizing: border-box;
+        }
+
+        .rpm-item input:focus {
+            outline: none;
+            border-color: #3730a3;
+            box-shadow: 0 0 0 2px rgba(55,48,163,0.15);
+        }
+
+        .generate-btn {
+            background: linear-gradient(135deg, #3730a3, #4f46e5);
+            color: white;
+            margin-top: 18px;
+            width: 100%;
+            padding: 14px;
+            font-size: 16px;
+        }
+
+        .generate-btn:hover {
+            background: linear-gradient(135deg, #312e81, #4338ca);
+        }
+
+        .generate-btn:disabled {
+            background: #9ca3af;
+            cursor: not-allowed;
+            transform: none;
+            box-shadow: none;
+        }
+
+        .gen-status {
+            margin-top: 12px;
+            padding: 10px 14px;
+            border-radius: 7px;
+            font-size: 14px;
+            display: none;
+        }
+
+        .gen-status.ok  { background: #d1fae5; color: #065f46; display: block; }
+        .gen-status.err { background: #fee2e2; color: #991b1b; display: block; }
+        .gen-status.running { background: #ede9fe; color: #3730a3; display: block; }
+
+        /* ── Apply-to-all floating bar ── */
+        .apply-all-bar {
+            position: fixed;
+            bottom: 24px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: #3730a3;
+            color: white;
+            padding: 11px 18px;
+            border-radius: 10px;
+            display: none;
+            align-items: center;
+            gap: 12px;
+            box-shadow: 0 6px 20px rgba(55,48,163,0.45);
+            z-index: 9999;
+            font-size: 14px;
+            white-space: nowrap;
+        }
+
+        .apply-all-bar.visible { display: flex; }
+
+        .apply-all-bar .aabar-msg { font-weight: 500; }
+
+        .apply-all-bar .aabar-apply {
+            background: white;
+            color: #3730a3;
+            border: none;
+            padding: 6px 14px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-weight: 700;
+            font-size: 13px;
+            min-width: auto;
+            transform: none;
+        }
+
+        .apply-all-bar .aabar-apply:hover { background: #e0e7ff; box-shadow: none; transform: none; }
+
+        .apply-all-bar .aabar-dismiss {
+            background: transparent;
+            color: rgba(255,255,255,0.65);
+            border: none;
+            font-size: 20px;
+            line-height: 1;
+            cursor: pointer;
+            padding: 0 4px;
+            min-width: auto;
+            transform: none;
+        }
+
+        .apply-all-bar .aabar-dismiss:hover { color: white; box-shadow: none; transform: none; }
+
+        .calib-table input.changed {
+            border-color: #818cf8;
+            background: #f0f1ff;
+        }
+
+        .calib-section-title {
+            font-weight: 700;
+            font-size: 13px;
+            text-transform: uppercase;
+            letter-spacing: 0.06em;
+            color: #3730a3;
+            margin: 16px 0 6px;
+            padding-left: 2px;
+        }
+
+        .calib-section-title:first-child { margin-top: 0; }
+
+        .calib-table-wrap + .calib-section-title { margin-top: 20px; }
+
+        /* Level-column separators */
+        .calib-table th.lv-cell,
+        .calib-table td.lv-cell {
+            border-right: 1px solid #dde4ff;
+        }
+        .calib-table th.lv-sep,
+        .calib-table td.lv-sep {
+            border-right: 2px solid #818cf8;
+        }
+
+        /* Sub-label in alignment column headers */
+        .calib-table th .col-desc {
+            font-size: 10px;
+            font-weight: 400;
+            opacity: 0.82;
+            margin-top: 3px;
+            white-space: normal;
+            min-width: 110px;
+            line-height: 1.3;
+        }
     </style>
 </head>
 <body>
@@ -314,7 +554,7 @@
                         <option value="80">80 km/h</option>
                         <option value="90">90 km/h</option>
                         <option value="100">100 km/h</option>
-                        <option value="110">110 km/h</option>
+                        <option value="110" selected>110 km/h</option>
                         <option value="120">120 km/h</option>
                         <option value="130">130 km/h</option>
                         <option value="140">140 km/h</option>
@@ -387,7 +627,39 @@
             </div>
         </div>
         
+        <!-- ── Calibration & Generate ── -->
+        <div class="calib-section">
+            <div class="calib-header" onclick="toggleCalib()">
+                <h3>⚙️ Speed Group Calibration &amp; Generate</h3>
+                <span class="calib-toggle" id="calibToggle">▼</span>
+            </div>
+            <div class="calib-body" id="calibBody">
+
+                <div id="calibTableContainer"></div>
+
+                <div style="margin-top: 20px;">
+                    <div style="font-weight: 600; color: #3730a3; margin-bottom: 4px; font-size: 14px;">RPM Map (straight ball, centre)</div>
+                    <div class="rpm-grid" id="rpmGrid">
+                        <!-- filled by JS -->
+                    </div>
+                </div>
+
+                <button class="primary-btn generate-btn" id="generateBtn" onclick="generateJSON()">
+                    ⚡ Generate bowling_data.json
+                </button>
+                <div class="gen-status" id="genStatus"></div>
+
+            </div>
+        </div>
+
         <div id="result" class="result" style="display: none;"></div>
+    </div>
+
+    <!-- Apply-to-all floating bar (outside container so it's always on top) -->
+    <div class="apply-all-bar" id="applyAllBar">
+        <span class="aabar-msg" id="applyAllMsg"></span>
+        <button class="aabar-apply" onclick="doApplyAll()">Apply to all groups</button>
+        <button class="aabar-dismiss" onclick="hideApplyAll()">&#x2715;</button>
     </div>
 
     <!-- External BowlingMachineController.js file -->
@@ -708,6 +980,8 @@
 
         // Auto-update configuration when inputs change
         document.addEventListener('DOMContentLoaded', function() {
+            buildCalibTable();
+            buildRpmGrid();
             initializeController();
             
             // Swing and spin are exclusive: picking a non-zero level for one resets the other to 0
@@ -733,7 +1007,239 @@
             setTimeout(getConfig, 100);
         });
 
-        // Keyboard shortcuts
+        // ── Calibration ──────────────────────────────────────────
+
+        const SPEED_GROUPS = [
+            { key: 'G1_60_70',   label: 'G1',  speeds: '60, 70' },
+            { key: 'G2_80',      label: 'G2',  speeds: '80'     },
+            { key: 'G3_90_100',  label: 'G3',  speeds: '90, 100'},
+            { key: 'G4_110_120', label: 'G4',  speeds: '110, 120'},
+            { key: 'G5_130_140', label: 'G5',  speeds: '130, 140'},
+            { key: 'G6_150',     label: 'G6',  speeds: '150'    },
+        ];
+
+        // Flat alignment defaults + per-level defaults for each effect
+        const ALIGN_DEFAULTS = { pan_offset: 0, tilt_offset: 0, lr_tilt_offset: 0 };
+        const LEVEL_DEFAULTS = {
+            swing_pan:    { 1: 150, 2: 300, 3: 450, 4: 600, 5: 750 },
+            swing_tilt:   { 1: 25,  2: 25,  3: 25,  4: 25,  5: 25  },
+            spin_lr_tilt: { 1: 100, 2: 200, 3: 300, 4: 400, 5: 500 },
+            spin_tilt:    { 1: 0,   2: 0,   3: 0,   4: 0,   5: 0   },
+            spin_pan:     { 1: 0,   2: 0,   3: 0,   4: 0,   5: 0   },
+        };
+
+        // Drives buildCalibTable — 3 sub-tables
+        const TABLE_SECTIONS = [
+            {
+                id: 'alignment', title: 'Alignment', type: 'flat',
+                cols: [
+                    { param: 'pan_offset',     label: 'pan offset',      desc: 'Centre Pan = 500 → 500 + offset' },
+                    { param: 'tilt_offset',    label: 'tilt offset',     desc: 'Tilt baseline varies by speed (50–750) → baseline + offset' },
+                    { param: 'lr_tilt_offset', label: 'L/R tilt offset', desc: 'L/R Tilt = 500 (600 at G1) → baseline + offset' },
+                ],
+            },
+            {
+                id: 'swing', title: 'Swing Effects', type: 'levels',
+                subgroups: [
+                    { label: 'Pan',          effect: 'swing_pan'  },
+                    { label: 'Machine Tilt', effect: 'swing_tilt' },
+                ],
+            },
+            {
+                id: 'spin', title: 'Spin Effects', type: 'levels',
+                subgroups: [
+                    { label: 'L/R Tilt',     effect: 'spin_lr_tilt' },
+                    { label: 'Machine Tilt', effect: 'spin_tilt'    },
+                    { label: 'Pan',          effect: 'spin_pan'     },
+                ],
+            },
+        ];
+
+        const RPM_DEFAULTS = {
+            60: 269.0, 70: 320.0, 80: 340.0, 90: 360.0, 100: 380.0,
+            110: 400.0, 120: 430.0, 130: 465.0, 140: 500.0, 150: 530.0,
+        };
+
+        function buildCalibTable() {
+            const container = document.getElementById('calibTableContainer');
+            container.innerHTML = '';
+
+            TABLE_SECTIONS.forEach(section => {
+                const titleEl = document.createElement('div');
+                titleEl.className = 'calib-section-title';
+                titleEl.textContent = section.title;
+                container.appendChild(titleEl);
+
+                let theadRows = '', tbodyRows = '';
+
+                if (section.type === 'flat') {
+                    // Single header row, one input per param
+                    theadRows = `<tr><th>Group</th><th>Speeds</th>${section.cols.map(c =>
+                        `<th>${c.label}${c.desc ? `<div class="col-desc">${c.desc}</div>` : ''}</th>`
+                    ).join('')}</tr>`;
+                    tbodyRows = SPEED_GROUPS.map(g => {
+                        const cells = section.cols.map(col => {
+                            const id = `g_${g.key}_${col.param}`;
+                            return `<td><input type="number" id="${id}" value="${ALIGN_DEFAULTS[col.param]}" step="1" oninput="onCalibChange(this,'${col.param}','${g.key}')"></td>`;
+                        }).join('');
+                        return `<tr><td>${g.label}</td><td>${g.speeds}</td>${cells}</tr>`;
+                    }).join('');
+
+                } else {
+                    // Two header rows: subgroup labels (colspan 5) then L1–L5
+                    const lastSgIdx = section.subgroups.length - 1;
+                    const sgHeads = section.subgroups.map((sg, sgIdx) => {
+                        const sepStyle = sgIdx < lastSgIdx
+                            ? 'border-bottom:1px solid rgba(255,255,255,0.25); border-right:2px solid #818cf8'
+                            : 'border-bottom:1px solid rgba(255,255,255,0.25)';
+                        return `<th colspan="5" style="${sepStyle}">— ${sg.label} —</th>`;
+                    }).join('');
+                    const lvHeads = section.subgroups.map((sg, sgIdx) =>
+                        [1,2,3,4,5].map(l => {
+                            const cls = l === 5 && sgIdx < lastSgIdx ? 'lv-sep' : 'lv-cell';
+                            return `<th class="${cls}">L${l}</th>`;
+                        }).join('')
+                    ).join('');
+                    theadRows = `<tr><th rowspan="2">Group</th><th rowspan="2">Speeds</th>${sgHeads}</tr><tr>${lvHeads}</tr>`;
+
+                    tbodyRows = SPEED_GROUPS.map(g => {
+                        const cells = section.subgroups.map((sg, sgIdx) => {
+                            return [1,2,3,4,5].map(lv => {
+                                const id = `g_${g.key}_${sg.effect}_${lv}`;
+                                const def = LEVEL_DEFAULTS[sg.effect][lv];
+                                const cls = lv === 5 && sgIdx < lastSgIdx ? 'lv-sep' : 'lv-cell';
+                                return `<td class="${cls}"><input type="number" id="${id}" value="${def}" step="1" oninput="onCalibChange(this,'${sg.effect}_${lv}','${g.key}')"></td>`;
+                            }).join('');
+                        }).join('');
+                        return `<tr><td>${g.label}</td><td>${g.speeds}</td>${cells}</tr>`;
+                    }).join('');
+                }
+
+                const wrap = document.createElement('div');
+                wrap.className = 'calib-table-wrap';
+                wrap.innerHTML = `<table class="calib-table"><thead>${theadRows}</thead><tbody>${tbodyRows}</tbody></table>`;
+                container.appendChild(wrap);
+            });
+        }
+
+        // ── Apply-to-all logic ───────────────────────────────────
+        // paramKey = 'pan_offset' (flat) or 'swing_pan_3' (effect_level)
+        let _aaParamKey = null, _aaVal = null, _aaSourceId = null;
+
+        function onCalibChange(input, paramKey, groupKey) {
+            if (_aaSourceId && _aaSourceId !== input.id) {
+                const prev = document.getElementById(_aaSourceId);
+                if (prev) prev.classList.remove('changed');
+            }
+            _aaParamKey = paramKey;
+            _aaVal      = input.value;
+            _aaSourceId = input.id;
+            input.classList.add('changed');
+
+            const label = paramKey.replace(/_/g, ' ');
+            document.getElementById('applyAllMsg').textContent =
+                `Set ${label} = ${input.value} for all groups?`;
+            document.getElementById('applyAllBar').classList.add('visible');
+        }
+
+        function doApplyAll() {
+            if (!_aaParamKey) return;
+            SPEED_GROUPS.forEach(g => {
+                const el = document.getElementById(`g_${g.key}_${_aaParamKey}`);
+                if (el) { el.value = _aaVal; el.classList.remove('changed'); }
+            });
+            hideApplyAll();
+        }
+
+        function hideApplyAll() {
+            document.getElementById('applyAllBar').classList.remove('visible');
+            if (_aaSourceId) {
+                const el = document.getElementById(_aaSourceId);
+                if (el) el.classList.remove('changed');
+            }
+            _aaParamKey = null; _aaVal = null; _aaSourceId = null;
+        }
+
+        function buildRpmGrid() {
+            const grid = document.getElementById('rpmGrid');
+            grid.innerHTML = '';
+            Object.entries(RPM_DEFAULTS).forEach(([spd, rpm]) => {
+                const div = document.createElement('div');
+                div.className = 'rpm-item';
+                div.innerHTML = `<label>${spd} kph</label><input type="number" id="rpm_${spd}" value="${rpm}" step="0.5" min="150" max="700">`;
+                grid.appendChild(div);
+            });
+        }
+
+        function readCalibValues() {
+            const speed_group_tuning = {};
+            SPEED_GROUPS.forEach(g => {
+                const params = {};
+                // Alignment scalars
+                Object.keys(ALIGN_DEFAULTS).forEach(param => {
+                    params[param] = parseFloat(document.getElementById(`g_${g.key}_${param}`).value);
+                });
+                // Per-level maps
+                Object.keys(LEVEL_DEFAULTS).forEach(effect => {
+                    params[effect] = {};
+                    for (let lv = 1; lv <= 5; lv++) {
+                        params[effect][lv] = parseFloat(document.getElementById(`g_${g.key}_${effect}_${lv}`).value);
+                    }
+                });
+                speed_group_tuning[g.key] = params;
+            });
+
+            const rpm_map = {};
+            Object.keys(RPM_DEFAULTS).forEach(spd => {
+                rpm_map[spd] = parseFloat(document.getElementById(`rpm_${spd}`).value);
+            });
+
+            return { speed_group_tuning, rpm_map };
+        }
+
+        async function generateJSON() {
+            const btn = document.getElementById('generateBtn');
+            const status = document.getElementById('genStatus');
+            btn.disabled = true;
+            status.className = 'gen-status running';
+            status.textContent = 'Generating... this takes a few seconds.';
+
+            try {
+                const payload = readCalibValues();
+                const res = await fetch('/generate', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(payload),
+                });
+                const data = await res.json();
+                if (data.status === 'ok') {
+                    status.className = 'gen-status ok';
+                    status.textContent = `✅ Generated successfully — ${data.size_mb} MB. Reloading controller...`;
+                    // Reinitialise the controller so it picks up the new data
+                    setTimeout(() => {
+                        initializeController();
+                        setTimeout(getConfig, 400);
+                    }, 300);
+                } else {
+                    status.className = 'gen-status err';
+                    status.textContent = `❌ Error: ${data.message}`;
+                }
+            } catch (err) {
+                status.className = 'gen-status err';
+                status.textContent = `❌ Could not reach server. Run: python3 server.py  (then open http://localhost:8080)`;
+            } finally {
+                btn.disabled = false;
+            }
+        }
+
+        function toggleCalib() {
+            const body   = document.getElementById('calibBody');
+            const toggle = document.getElementById('calibToggle');
+            const open   = body.classList.toggle('open');
+            toggle.classList.toggle('open', open);
+        }
+
+        // ── Keyboard shortcuts
         document.addEventListener('keydown', function(event) {
             if (event.ctrlKey || event.metaKey) {
                 switch(event.key) {
