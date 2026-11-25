@@ -95,6 +95,74 @@ def generate_minimal_bowling_dataset_with_rpm_map(
 
     # Override with user-provided speed group tuning if supplied.
     # Level-map keys may arrive as strings from JSON — convert to int automatically.
+    #
+    # ── Expected structure of speed_group_tuning ─────────────────────────────
+    # Sent by the UI as the body of POST /generate.  All 6 groups, all 8 params.
+    # JSON keys for level maps are strings ("1"–"5"); Python converts them to int.
+    #
+    # {
+    #   "G1_60_70": {
+    #     "pan_offset":     0,
+    #     "tilt_offset":    0,
+    #     "lr_tilt_offset": 0,
+    #     "swing_pan":    {"1": 150, "2": 300, "3": 450, "4": 600, "5": 750},
+    #     "swing_tilt":   {"1": 25,  "2": 25,  "3": 25,  "4": 25,  "5": 25},
+    #     "spin_lr_tilt": {"1": 100, "2": 200, "3": 300, "4": 400, "5": 500},
+    #     "spin_tilt":    {"1": 0,   "2": 0,   "3": 0,   "4": 0,   "5": 0},
+    #     "spin_pan":     {"1": 0,   "2": 0,   "3": 0,   "4": 0,   "5": 0}
+    #   },
+    #   "G2_80": {
+    #     "pan_offset":     0,
+    #     "tilt_offset":    0,
+    #     "lr_tilt_offset": 0,
+    #     "swing_pan":    {"1": 150, "2": 300, "3": 450, "4": 600, "5": 750},
+    #     "swing_tilt":   {"1": 25,  "2": 25,  "3": 25,  "4": 25,  "5": 25},
+    #     "spin_lr_tilt": {"1": 100, "2": 200, "3": 300, "4": 400, "5": 500},
+    #     "spin_tilt":    {"1": 0,   "2": 0,   "3": 0,   "4": 0,   "5": 0},
+    #     "spin_pan":     {"1": 0,   "2": 0,   "3": 0,   "4": 0,   "5": 0}
+    #   },
+    #   "G3_90_100": {
+    #     "pan_offset":     0,
+    #     "tilt_offset":    0,
+    #     "lr_tilt_offset": 0,
+    #     "swing_pan":    {"1": 150, "2": 300, "3": 450, "4": 600, "5": 750},
+    #     "swing_tilt":   {"1": 25,  "2": 25,  "3": 25,  "4": 25,  "5": 25},
+    #     "spin_lr_tilt": {"1": 100, "2": 200, "3": 300, "4": 400, "5": 500},
+    #     "spin_tilt":    {"1": 0,   "2": 0,   "3": 0,   "4": 0,   "5": 0},
+    #     "spin_pan":     {"1": 0,   "2": 0,   "3": 0,   "4": 0,   "5": 0}
+    #   },
+    #   "G4_110_120": {
+    #     "pan_offset":     0,
+    #     "tilt_offset":    0,
+    #     "lr_tilt_offset": 0,
+    #     "swing_pan":    {"1": 150, "2": 300, "3": 450, "4": 600, "5": 750},
+    #     "swing_tilt":   {"1": 25,  "2": 25,  "3": 25,  "4": 25,  "5": 25},
+    #     "spin_lr_tilt": {"1": 100, "2": 200, "3": 300, "4": 400, "5": 500},
+    #     "spin_tilt":    {"1": 0,   "2": 0,   "3": 0,   "4": 0,   "5": 0},
+    #     "spin_pan":     {"1": 0,   "2": 0,   "3": 0,   "4": 0,   "5": 0}
+    #   },
+    #   "G5_130_140": {
+    #     "pan_offset":     0,
+    #     "tilt_offset":    0,
+    #     "lr_tilt_offset": 0,
+    #     "swing_pan":    {"1": 150, "2": 300, "3": 450, "4": 600, "5": 750},
+    #     "swing_tilt":   {"1": 25,  "2": 25,  "3": 25,  "4": 25,  "5": 25},
+    #     "spin_lr_tilt": {"1": 100, "2": 200, "3": 300, "4": 400, "5": 500},
+    #     "spin_tilt":    {"1": 0,   "2": 0,   "3": 0,   "4": 0,   "5": 0},
+    #     "spin_pan":     {"1": 0,   "2": 0,   "3": 0,   "4": 0,   "5": 0}
+    #   },
+    #   "G6_150": {
+    #     "pan_offset":     0,
+    #     "tilt_offset":    0,
+    #     "lr_tilt_offset": 0,
+    #     "swing_pan":    {"1": 150, "2": 300, "3": 450, "4": 600, "5": 750},
+    #     "swing_tilt":   {"1": 25,  "2": 25,  "3": 25,  "4": 25,  "5": 25},
+    #     "spin_lr_tilt": {"1": 100, "2": 200, "3": 300, "4": 400, "5": 500},
+    #     "spin_tilt":    {"1": 0,   "2": 0,   "3": 0,   "4": 0,   "5": 0},
+    #     "spin_pan":     {"1": 0,   "2": 0,   "3": 0,   "4": 0,   "5": 0}
+    #   }
+    # }
+    # ─────────────────────────────────────────────────────────────────────────
     if speed_group_tuning:
         for group_name, user_params in speed_group_tuning.items():
             if group_name not in SPEED_GROUPS:

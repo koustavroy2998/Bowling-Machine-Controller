@@ -538,6 +538,63 @@
             min-width: 110px;
             line-height: 1.3;
         }
+
+        /* ── Info / tooltip icons ── */
+        .tip-icon {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            width: 15px;
+            height: 15px;
+            background: rgba(255,255,255,0.22);
+            border: 1.5px solid rgba(255,255,255,0.55);
+            border-radius: 50%;
+            font-size: 9px;
+            font-weight: 800;
+            font-style: normal;
+            color: rgba(255,255,255,0.9);
+            cursor: help;
+            vertical-align: middle;
+            margin-left: 5px;
+            flex-shrink: 0;
+            position: relative;
+            line-height: 1;
+            user-select: none;
+        }
+
+        .tip-icon.on-light {
+            background: #e0e7ff;
+            border-color: #818cf8;
+            color: #3730a3;
+        }
+
+        .tip-icon::after {
+            content: attr(data-tip);
+            position: absolute;
+            bottom: calc(100% + 8px);
+            left: 50%;
+            transform: translateX(-50%);
+            background: #1e1b4b;
+            color: #dde4ff;
+            padding: 8px 12px;
+            border-radius: 7px;
+            font-size: 11.5px;
+            font-weight: 400;
+            white-space: normal;
+            width: 230px;
+            text-align: left;
+            display: none;
+            z-index: 10000;
+            pointer-events: none;
+            line-height: 1.5;
+            box-shadow: 0 4px 16px rgba(30,27,75,0.45);
+        }
+
+        .tip-icon:hover::after { display: block; }
+
+        /* keep table cells from clipping tooltips */
+        .calib-table th,
+        .calib-table td { overflow: visible; }
     </style>
 </head>
 <body>
@@ -638,7 +695,10 @@
                 <div id="calibTableContainer"></div>
 
                 <div style="margin-top: 20px;">
-                    <div style="font-weight: 600; color: #3730a3; margin-bottom: 4px; font-size: 14px;">RPM Map (straight ball, centre)</div>
+                    <div style="font-weight: 600; color: #3730a3; margin-bottom: 4px; font-size: 14px;">
+                        RPM Map (straight ball, centre)
+                        <i class="tip-icon on-light" data-tip="Base RPM at each speed for a straight ball bowled to centre. Used as the starting point before swing RPM boost (+20 per level) and spin RPM boost (up to +20 per level) are added.">i</i>
+                    </div>
                     <div class="rpm-grid" id="rpmGrid">
                         <!-- filled by JS -->
                     </div>
@@ -1032,25 +1092,36 @@
         const TABLE_SECTIONS = [
             {
                 id: 'alignment', title: 'Alignment', type: 'flat',
+                titleTip: 'Global servo offsets applied to every delivery in this speed group. Use these to correct systematic positioning drift between groups.',
                 cols: [
-                    { param: 'pan_offset',     label: 'pan offset',      desc: 'Centre Pan = 500 → 500 + offset' },
-                    { param: 'tilt_offset',    label: 'tilt offset',     desc: 'Tilt baseline varies by speed (50–750) → baseline + offset' },
-                    { param: 'lr_tilt_offset', label: 'L/R tilt offset', desc: 'L/R Tilt = 500 (600 at G1) → baseline + offset' },
+                    { param: 'pan_offset',     label: 'pan offset',      desc: 'Centre Pan = 500 → 500 + offset',
+                      tip: 'Shifts the horizontal servo for all deliveries in this group. Positive = shift right (higher pan value), negative = shift left. Applied after all position and swing/spin calculations.' },
+                    { param: 'tilt_offset',    label: 'tilt offset',     desc: 'Tilt baseline varies by speed (50–750) → baseline + offset',
+                      tip: 'Shifts machine tilt for all deliveries. Positive = fuller/higher trajectory, negative = shorter. Applied after all position and swing/spin calculations.' },
+                    { param: 'lr_tilt_offset', label: 'L/R tilt offset', desc: 'L/R Tilt = 500 (600 at G1) → baseline + offset',
+                      tip: 'Shifts both left and right wheel tilt angles equally. Adjusts seam presentation and release angle uniformly across all deliveries.' },
                 ],
             },
             {
                 id: 'swing', title: 'Swing Effects', type: 'levels',
+                titleTip: 'Per-level effect magnitudes for swing deliveries. Direction is determined by swing level sign (+/-); the absolute level selects the magnitude here.',
                 subgroups: [
-                    { label: 'Pan',          effect: 'swing_pan'  },
-                    { label: 'Machine Tilt', effect: 'swing_tilt' },
+                    { label: 'Pan', effect: 'swing_pan',
+                      tip: 'Pan servo delta per swing level. Right swing (+) subtracts from pan; left swing (-) adds pan. L1 = least movement, L5 = most. E.g. L3=450 means 450 pan units shift at swing level 3.' },
+                    { label: 'Machine Tilt', effect: 'swing_tilt',
+                      tip: 'Tilt boost added per swing level (unsigned, always added regardless of direction). Compensates for trajectory change that occurs with swing. E.g. L1=25 adds 25 tilt at swing level 1.' },
                 ],
             },
             {
                 id: 'spin', title: 'Spin Effects', type: 'levels',
+                titleTip: 'Per-level effect magnitudes for spin deliveries. Direction is determined by spin level sign (+/-); the absolute level selects the magnitude here.',
                 subgroups: [
-                    { label: 'L/R Tilt',     effect: 'spin_lr_tilt' },
-                    { label: 'Machine Tilt', effect: 'spin_tilt'    },
-                    { label: 'Pan',          effect: 'spin_pan'     },
+                    { label: 'L/R Tilt', effect: 'spin_lr_tilt',
+                      tip: 'Wheel tilt differential per spin level. Right spin (+): left wheel tilts up by this value, right wheel tilts down by same amount. Creates sidespin/cut. L1 = least spin, L5 = most.' },
+                    { label: 'Machine Tilt', effect: 'spin_tilt',
+                      tip: 'Tilt boost added per spin level (unsigned, always added regardless of direction). Adjusts trajectory height when spin is applied.' },
+                    { label: 'Pan', effect: 'spin_pan',
+                      tip: 'Pan offset per spin level. Right spin (+) adds pan, left spin (-) subtracts. Adjusts the release line to compensate for the spin trajectory.' },
                 ],
             },
         ];
@@ -1067,16 +1138,19 @@
             TABLE_SECTIONS.forEach(section => {
                 const titleEl = document.createElement('div');
                 titleEl.className = 'calib-section-title';
-                titleEl.textContent = section.title;
+                titleEl.innerHTML = section.titleTip
+                    ? `${section.title} <i class="tip-icon on-light" data-tip="${section.titleTip}">i</i>`
+                    : section.title;
                 container.appendChild(titleEl);
 
                 let theadRows = '', tbodyRows = '';
 
                 if (section.type === 'flat') {
                     // Single header row, one input per param
-                    theadRows = `<tr><th>Group</th><th>Speeds</th>${section.cols.map(c =>
-                        `<th>${c.label}${c.desc ? `<div class="col-desc">${c.desc}</div>` : ''}</th>`
-                    ).join('')}</tr>`;
+                    theadRows = `<tr><th>Group</th><th>Speeds</th>${section.cols.map(c => {
+                        const icon = c.tip ? `<i class="tip-icon" data-tip="${c.tip}">i</i>` : '';
+                        return `<th>${c.label}${icon}${c.desc ? `<div class="col-desc">${c.desc}</div>` : ''}</th>`;
+                    }).join('')}</tr>`;
                     tbodyRows = SPEED_GROUPS.map(g => {
                         const cells = section.cols.map(col => {
                             const id = `g_${g.key}_${col.param}`;
@@ -1092,7 +1166,8 @@
                         const sepStyle = sgIdx < lastSgIdx
                             ? 'border-bottom:1px solid rgba(255,255,255,0.25); border-right:2px solid #818cf8'
                             : 'border-bottom:1px solid rgba(255,255,255,0.25)';
-                        return `<th colspan="5" style="${sepStyle}">— ${sg.label} —</th>`;
+                        const icon = sg.tip ? `<i class="tip-icon" data-tip="${sg.tip}">i</i>` : '';
+                        return `<th colspan="5" style="${sepStyle}">— ${sg.label} —${icon}</th>`;
                     }).join('');
                     const lvHeads = section.subgroups.map((sg, sgIdx) =>
                         [1,2,3,4,5].map(l => {
